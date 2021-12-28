@@ -10,9 +10,7 @@ import (
 	"strings"
 )
 
-
-
-func (engine *Engine)AddOneTorrentFromFile (filepathAbs string)(tmpTorrent *torrent.Torrent, err error) {
+func (engine *Engine) AddOneTorrentFromFile(filepathAbs string) (tmpTorrent *torrent.Torrent, err error) {
 	torrentMetaInfo, err := metainfo.LoadFromFile(filepathAbs)
 	if err == nil {
 		//To solve problem of different variable scope
@@ -28,33 +26,33 @@ func (engine *Engine)AddOneTorrentFromFile (filepathAbs string)(tmpTorrent *torr
 }
 
 //Check if duplicated torrent
-func (engine *Engine)checkOneHash(infoHash metainfo.Hash) (tmpTorrent *torrent.Torrent, needMoreOperation bool){
+func (engine *Engine) checkOneHash(infoHash metainfo.Hash) (tmpTorrent *torrent.Torrent, needMoreOperation bool) {
 	torrentLog, isExist := engine.EngineRunningInfo.HashToTorrentLog[infoHash]
 	if isExist && torrentLog.Status != CompletedStatus {
 		logger.Info("Task has been created")
 		tmpTorrent, _ = engine.TorrentEngine.Torrent(infoHash)
 		needMoreOperation = false
-	}else if isExist && torrentLog.Status == CompletedStatus {
+	} else if isExist && torrentLog.Status == CompletedStatus {
 		logger.Info("Task has been completed")
 		tmpTorrent = nil
 		needMoreOperation = false
-	}else{
+	} else {
 		logger.Info("Create a new task")
 		needMoreOperation = true
 	}
 	return
 }
 
-func (engine *Engine)AddOneTorrentFromMagnet (linkAddress string)(tmpTorrent *torrent.Torrent, err error) {
+func (engine *Engine) AddOneTorrentFromMagnet(linkAddress string) (tmpTorrent *torrent.Torrent, err error) {
 	if strings.HasPrefix(linkAddress, "magnet:") || strings.HasPrefix(linkAddress, "infohash:") {
 		var infoHash metainfo.Hash
 		if strings.HasPrefix(linkAddress, "magnet:") {
 			var torrentMetaInfo *torrent.TorrentSpec
-			torrentMetaInfo, err = torrent.TorrentSpecFromMagnetURI(linkAddress)
+			torrentMetaInfo, err = torrent.TorrentSpecFromMagnetUri(linkAddress)
 			if err != nil {
-				logger.WithFields(log.Fields{"Error":err}).Error("unable to resolve magnet")
+				logger.WithFields(log.Fields{"Error": err}).Error("unable to resolve magnet")
 				return
-			}else{
+			} else {
 				infoHash = torrentMetaInfo.InfoHash
 			}
 		} else {
@@ -67,27 +65,27 @@ func (engine *Engine)AddOneTorrentFromMagnet (linkAddress string)(tmpTorrent *to
 			engine.EngineRunningInfo.AddOneTorrentFromMagnet(infoHash)
 			extendLog, _ := engine.EngineRunningInfo.TorrentLogExtends[infoHash]
 			go func() {
-				engine.EngineRunningInfo.MagnetNum ++
+				engine.EngineRunningInfo.MagnetNum++
 				tmpTorrent, err = engine.TorrentEngine.AddMagnet(linkAddress)
 				select {
-					case <- tmpTorrent.GotInfo():
-						if err != nil {
-							logger.WithFields(log.Fields{"Error":err, "Torrent": tmpTorrent}).Error("Unable to resolve magnet")
-						}else{
-							logger.Debug("Add torrent from magnet")
-							engine.EngineRunningInfo.UpdateMagnetInfo(tmpTorrent)
-							engine.GenerateInfoFromTorrent(tmpTorrent)
-							engine.SaveInfo()
-							engine.StartDownloadTorrent(tmpTorrent.InfoHash().HexString())
-							engine.EngineRunningInfo.EngineCMD <- RefreshInfo
-							logger.Debug("It should refresh")
-						}
-					case <- extendLog.MagnetAnalyseChan:
-						tmpTorrent.Drop()
-						extendLog.MagnetDelChan <- true
-						logger.Debug("One magnet has been deleted")
+				case <-tmpTorrent.GotInfo():
+					if err != nil {
+						logger.WithFields(log.Fields{"Error": err, "Torrent": tmpTorrent}).Error("Unable to resolve magnet")
+					} else {
+						logger.Debug("Add torrent from magnet")
+						engine.EngineRunningInfo.UpdateMagnetInfo(tmpTorrent)
+						engine.GenerateInfoFromTorrent(tmpTorrent)
+						engine.SaveInfo()
+						engine.StartDownloadTorrent(tmpTorrent.InfoHash().HexString())
+						engine.EngineRunningInfo.EngineCMD <- RefreshInfo
+						logger.Debug("It should refresh")
+					}
+				case <-extendLog.MagnetAnalyseChan:
+					tmpTorrent.Drop()
+					extendLog.MagnetDelChan <- true
+					logger.Debug("One magnet has been deleted")
 				}
-				engine.EngineRunningInfo.MagnetNum --
+				engine.EngineRunningInfo.MagnetNum--
 			}()
 		}
 	} else {
@@ -98,14 +96,14 @@ func (engine *Engine)AddOneTorrentFromMagnet (linkAddress string)(tmpTorrent *to
 }
 
 //Only handle torrent in client
-func (engine *Engine)GetOneTorrent(hexString string)(tmpTorrent *torrent.Torrent, isExist bool) {
+func (engine *Engine) GetOneTorrent(hexString string) (tmpTorrent *torrent.Torrent, isExist bool) {
 	torrentHash := metainfo.Hash{}
 	err := torrentHash.FromHexString(hexString)
 	if err != nil {
-		logger.WithFields(log.Fields{"Error":err}).Error("Unable to get hash from hex string")
+		logger.WithFields(log.Fields{"Error": err}).Error("Unable to get hash from hex string")
 		tmpTorrent = nil
 		isExist = false
-	}else{
+	} else {
 		tmpTorrent, isExist = engine.TorrentEngine.Torrent(torrentHash)
 
 		//any operation on magnet is forbidden
@@ -121,7 +119,7 @@ func (engine *Engine)GetOneTorrent(hexString string)(tmpTorrent *torrent.Torrent
 }
 
 //Max number of downloading torrents should be considered in electron
-func (engine *Engine)StartDownloadTorrent(hexString string)(downloaded bool) {
+func (engine *Engine) StartDownloadTorrent(hexString string) (downloaded bool) {
 	downloaded = true
 	singleTorrent, isExist := engine.GetOneTorrent(hexString)
 	if isExist {
@@ -129,14 +127,14 @@ func (engine *Engine)StartDownloadTorrent(hexString string)(downloaded bool) {
 		if singleTorrentLog.Status != RunningStatus {
 			singleTorrentLog.Status = RunningStatus
 			//check if extend exist
-			_, extendIsExist := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()];
+			_, extendIsExist := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()]
 			if !extendIsExist {
 				engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()] = &TorrentLogExtend{
-					StatusPub:singleTorrent.SubscribePieceStateChanges(),
-					HasStatusPub:true,
-					HasMagnetChan:false,
+					StatusPub:     singleTorrent.SubscribePieceStateChanges(),
+					HasStatusPub:  true,
+					HasMagnetChan: false,
 				}
-			}else if extendIsExist && !engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].HasStatusPub{
+			} else if extendIsExist && !engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].HasStatusPub {
 				logger.Debug("it has extend but no status pub")
 				engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].HasStatusPub = true
 				engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].StatusPub = singleTorrent.SubscribePieceStateChanges()
@@ -150,16 +148,16 @@ func (engine *Engine)StartDownloadTorrent(hexString string)(downloaded bool) {
 			//TODO: Download selected files
 			singleTorrent.DownloadAll()
 		}
-	}else{
+	} else {
 		downloaded = false
 	}
 	return
 }
 
-func (engine *Engine)CompleteOneTorrent(singleTorrent *torrent.Torrent)() {
+func (engine *Engine) CompleteOneTorrent(singleTorrent *torrent.Torrent) {
 	singleTorrentLog, _ := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
 	singleTorrentLogExtend, extendExist := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()]
-	<- singleTorrent.GotInfo()
+	<-singleTorrent.GotInfo()
 	//One more check
 	if singleTorrent.BytesCompleted() == singleTorrent.Info().TotalLength() {
 		logger.WithFields(log.Fields{"TorrentName": singleTorrent.Name()}).Info("Torrent has been finished")
@@ -176,11 +174,11 @@ func (engine *Engine)CompleteOneTorrent(singleTorrent *torrent.Torrent)() {
 	}
 }
 
-func (engine *Engine)WaitForCompleted(singleTorrent *torrent.Torrent)(){
+func (engine *Engine) WaitForCompleted(singleTorrent *torrent.Torrent) {
 	go func() {
 		singleTorrentLog, _ := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
 		singleTorrentLogExtend, _ := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()]
-		<- singleTorrent.GotInfo()
+		<-singleTorrent.GotInfo()
 		for singleTorrentLog.Status == RunningStatus {
 			if singleTorrent.BytesCompleted() == singleTorrent.Info().TotalLength() {
 				engine.CompleteOneTorrent(singleTorrent)
@@ -189,14 +187,14 @@ func (engine *Engine)WaitForCompleted(singleTorrent *torrent.Torrent)(){
 			}
 			<-singleTorrentLogExtend.StatusPub.Values
 		}
-		log.WithFields(log.Fields{"TorrentName":singleTorrentLog.TorrentName, "Status":singleTorrentLog.Status}).Info("Torrent status changed !")
+		log.WithFields(log.Fields{"TorrentName": singleTorrentLog.TorrentName, "Status": singleTorrentLog.Status}).Info("Torrent status changed !")
 	}()
 }
 
-func (engine *Engine)StopOneTorrent(hexString string)(stopped bool) {
+func (engine *Engine) StopOneTorrent(hexString string) (stopped bool) {
 	singleTorrent, torrentExist := engine.GetOneTorrent(hexString)
 	if torrentExist {
-		singleTorrentLog, _:= engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
+		singleTorrentLog, _ := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
 		if singleTorrentLog.Status != CompletedStatus {
 			singleTorrentLog.Status = StoppedStatus
 			engine.SaveInfo()
@@ -212,7 +210,7 @@ func (engine *Engine)StopOneTorrent(hexString string)(stopped bool) {
 			singleTorrent.SetMaxEstablishedConns(0)
 		}
 		stopped = true
-	}else{
+	} else {
 		stopped = false
 	}
 	return
@@ -220,7 +218,7 @@ func (engine *Engine)StopOneTorrent(hexString string)(stopped bool) {
 
 // TODO: Find error of out range of index, not find reason now
 // Delete on torrent will operate logs directly, rather than get from getOne
-func (engine *Engine)DelOneTorrent(hexString string)(deleted bool) {
+func (engine *Engine) DelOneTorrent(hexString string) (deleted bool) {
 	deleted = false
 
 	for index := range engine.EngineRunningInfo.TorrentLogs {
@@ -233,7 +231,7 @@ func (engine *Engine)DelOneTorrent(hexString string)(deleted bool) {
 				singleTorrent.Drop()
 			}
 			filePath := filepath.Join(engine.EngineRunningInfo.TorrentLogs[index].StoragePath, engine.EngineRunningInfo.TorrentLogs[index].TorrentName)
-			logger.WithFields(log.Fields{"Path":filePath}).Info("Files have been deleted!")
+			logger.WithFields(log.Fields{"Path": filePath}).Info("Files have been deleted!")
 			//fmt.Printf("Before delete: %+v\n", engine.EngineRunningInfo.TorrentLogsAndID)
 			engine.EngineRunningInfo.TorrentLogsAndID.TorrentLogs = append(engine.EngineRunningInfo.TorrentLogs[:index], engine.EngineRunningInfo.TorrentLogs[index+1:]...)
 			//fmt.Printf("After delete: %+v\n", engine.EngineRunningInfo.TorrentLogsAndID)
@@ -241,7 +239,7 @@ func (engine *Engine)DelOneTorrent(hexString string)(deleted bool) {
 			engine.SaveInfo()
 			delFiles(filePath)
 			deleted = true
-		}else if engine.EngineRunningInfo.TorrentLogs[index].Status == AnalysingStatus && engine.EngineRunningInfo.TorrentLogs[index].TorrentName == hexString {
+		} else if engine.EngineRunningInfo.TorrentLogs[index].Status == AnalysingStatus && engine.EngineRunningInfo.TorrentLogs[index].TorrentName == hexString {
 
 			//Magnet hash is stored in torrentName
 			torrentHash := metainfo.Hash{}
@@ -249,13 +247,13 @@ func (engine *Engine)DelOneTorrent(hexString string)(deleted bool) {
 			extendLog, _ := engine.EngineRunningInfo.TorrentLogExtends[torrentHash]
 			extendLog.MagnetAnalyseChan <- true
 			select {
-				case <- extendLog.MagnetDelChan:
-					engine.EngineRunningInfo.TorrentLogs = append(engine.EngineRunningInfo.TorrentLogs[:index], engine.EngineRunningInfo.TorrentLogs[index+1:]...)
-					engine.UpdateInfo()
-					engine.SaveInfo()
-					deleted = true
-					logger.Debug("Delete Magnet Done")
-					return
+			case <-extendLog.MagnetDelChan:
+				engine.EngineRunningInfo.TorrentLogs = append(engine.EngineRunningInfo.TorrentLogs[:index], engine.EngineRunningInfo.TorrentLogs[index+1:]...)
+				engine.UpdateInfo()
+				engine.SaveInfo()
+				deleted = true
+				logger.Debug("Delete Magnet Done")
+				return
 			}
 		}
 	}
@@ -269,8 +267,7 @@ func delFiles(path string) {
 	}
 }
 
-
-func channelClosed (ch <-chan interface{}) bool {
+func channelClosed(ch <-chan interface{}) bool {
 	select {
 	case <-ch:
 		return true

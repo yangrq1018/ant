@@ -192,12 +192,10 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
     torrent.TypeImg = this.defaultFileIcon;
     remote.app.getFileIcon(torrent.StoragePath + '/' + torrent.TorrentName, {
       'size': 'large'
-    }, (err, iconImg) => {
-      if (err !== null) {
-        console.log(err);
-      } else {
-        torrent.TypeImg = iconImg.toDataURL();
-      }
+    }).then(iconImg => {
+      torrent.TypeImg = iconImg.toDataURL();
+    }).catch(err => {
+      console.log(err);
     });
     torrent.LeftTime = 'Estimating ...';
     torrent.DownloadSpeed = 'Estimating ...';
@@ -327,7 +325,8 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
       if (this.currentMagnet === undefined) {
         this.currentMagnet = magnetURL;
         alert('Add magnet successfully');
-        this.webview.downloadURL(this.getTorrentFromInfoHash(infoHash));
+        console.log('call webview.downloadURL with ' + this.getTorrentFromInfoHash(infoHash));
+        // this.webview.downloadURL(this.getTorrentFromInfoHash(infoHash));
         const tmpThis = this;
         setTimeout(() => {
           if (tmpThis.currentMagnet !== undefined) {
@@ -366,7 +365,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
   private openInDirectory() {
     this.selectedTorrent = this.getTrueFromSelect(this.selectedTorrent);
     if (this.selectedTorrent !== null && this.selectedTorrent !== undefined) {
-      shell.openItem(this.selectedTorrent.StoragePath);
+      shell.openPath(this.selectedTorrent.StoragePath);
     }
   }
 

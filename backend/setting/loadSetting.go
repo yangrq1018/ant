@@ -13,43 +13,43 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 )
 
-
 var (
-	clientConfig ClientSetting
-	haveCreatedConfig 				= false
-	globalViper						= viper.New()
+	clientConfig      ClientSetting
+	haveCreatedConfig = false
+	globalViper       = viper.New()
 )
 
 type ConnectSetting struct {
-	SupportRemote 		bool
-	IP					string
-	Port 				int
-	Addr				string
-	AuthUsername 		string
-	AuthPassword 		string
+	SupportRemote bool
+	IP            string
+	Port          int
+	Addr          string
+	AuthUsername  string
+	AuthPassword  string
 }
 
 type EngineSetting struct {
-	UseSocksproxy 			bool
-	SocksProxyURL 			string
-	MaxActiveTorrents		int
-	TorrentDBPath			string
-	TorrentConfig			torrent.ClientConfig `json:"-"`
-	Tmpdir					string
-	MaxEstablishedConns 	int
-	EnableDefaultTrackers 	bool
-	DefaultTrackers			[][]string
+	UseSocksproxy         bool
+	SocksProxyURL         string
+	MaxActiveTorrents     int
+	TorrentDBPath         string
+	TorrentConfig         torrent.ClientConfig `json:"-"`
+	Tmpdir                string
+	MaxEstablishedConns   int
+	EnableDefaultTrackers bool
+	DefaultTrackers       [][]string
 }
 
 type LoggerSetting struct {
-	LoggingLevel 		log.Level
-	LoggingOutput 		string
-	Logger				*log.Logger
+	LoggingLevel  log.Level
+	LoggingOutput string
+	Logger        *log.Logger
 }
 
 type ClientSetting struct {
@@ -60,18 +60,18 @@ type ClientSetting struct {
 
 // These settings can be determined by users
 type WebSetting struct {
-	UseSocksproxy 			bool
-	SocksProxyURL 			string
-	MaxEstablishedConns 	int
-	Tmpdir					string
-	DataDir					string
-	EnableDefaultTrackers 	bool
-	DefaultTrackerList		string
-	DisableIPv4				bool
-	DisableIPv6				bool
+	UseSocksproxy         bool
+	SocksProxyURL         string
+	MaxEstablishedConns   int
+	Tmpdir                string
+	DataDir               string
+	EnableDefaultTrackers bool
+	DefaultTrackerList    string
+	DisableIPv4           bool
+	DisableIPv6           bool
 }
 
-func (clientConfig *ClientSetting) GetWebSetting()(webSetting WebSetting)  {
+func (clientConfig *ClientSetting) GetWebSetting() (webSetting WebSetting) {
 	webSetting.EnableDefaultTrackers = clientConfig.EngineSetting.EnableDefaultTrackers
 	webSetting.DefaultTrackerList = globalViper.GetString("EngineSetting.DefaultTrackerList")
 	webSetting.UseSocksproxy = clientConfig.EngineSetting.UseSocksproxy
@@ -91,22 +91,22 @@ func calculateRateLimiters(uploadRate, downloadRate string) (*rate.Limiter, *rat
 	return uploadRateLimiter, downloadRateLimiter
 }
 
-func (clientConfig *ClientSetting) loadValueFromConfig()() {
+func (clientConfig *ClientSetting) loadValueFromConfig() {
 
-	clientConfig.LoggerSetting.LoggingLevel  		= log.AllLevels[globalViper.GetInt("LoggerSetting.LoggingLevel")]
-	clientConfig.LoggerSetting.LoggingOutput 		= globalViper.GetString("LoggerSetting.LoggingOutput")
+	clientConfig.LoggerSetting.LoggingLevel = log.AllLevels[globalViper.GetInt("LoggerSetting.LoggingLevel")]
+	clientConfig.LoggerSetting.LoggingOutput = globalViper.GetString("LoggerSetting.LoggingOutput")
 	clientConfig.LoggerSetting.Logger.SetLevel(clientConfig.LoggerSetting.LoggingLevel)
 
-	clientConfig.EngineSetting.UseSocksproxy 		= globalViper.GetBool("EngineSetting.UseSocksproxy")
-	clientConfig.EngineSetting.SocksProxyURL 		= globalViper.GetString("EngineSetting.SocksProxyURL")
-	clientConfig.EngineSetting.MaxActiveTorrents 	= globalViper.GetInt("EngineSetting.MaxActiveTorrents")
-	clientConfig.EngineSetting.TorrentDBPath 		= globalViper.GetString("EngineSetting.TorrentDBPath")
-	clientConfig.EngineSetting.MaxEstablishedConns 	= globalViper.GetInt("EngineSetting.MaxEstablishedConns")
+	clientConfig.EngineSetting.UseSocksproxy = globalViper.GetBool("EngineSetting.UseSocksproxy")
+	clientConfig.EngineSetting.SocksProxyURL = globalViper.GetString("EngineSetting.SocksProxyURL")
+	clientConfig.EngineSetting.MaxActiveTorrents = globalViper.GetInt("EngineSetting.MaxActiveTorrents")
+	clientConfig.EngineSetting.TorrentDBPath = globalViper.GetString("EngineSetting.TorrentDBPath")
+	clientConfig.EngineSetting.MaxEstablishedConns = globalViper.GetInt("EngineSetting.MaxEstablishedConns")
 	tmpDir, tmpErr := filepath.Abs(filepath.ToSlash(globalViper.GetString("EngineSetting.Tmpdir")))
 	_ = os.Mkdir(tmpDir, 0755)
-	clientConfig.EngineSetting.Tmpdir				= tmpDir
+	clientConfig.EngineSetting.Tmpdir = tmpDir
 	if tmpErr != nil {
-		clientConfig.Logger.WithFields(log.Fields{"Error":tmpErr}).Error("Fail to create default cache directory")
+		clientConfig.Logger.WithFields(log.Fields{"Error": tmpErr}).Error("Fail to create default cache directory")
 	}
 
 	clientConfig.ConnectSetting.IP = globalViper.GetString("ConnectSetting.IP")
@@ -126,7 +126,7 @@ func (clientConfig *ClientSetting) loadValueFromConfig()() {
 	_ = os.Mkdir(tmpDataDir, 0755)
 	clientConfig.EngineSetting.TorrentConfig.DataDir = tmpDataDir
 	if err != nil {
-		clientConfig.Logger.WithFields(log.Fields{"Error":err}).Error("Fail to create default datadir")
+		clientConfig.Logger.WithFields(log.Fields{"Error": err}).Error("Fail to create default datadir")
 	}
 	tmpListenAddr := globalViper.GetString("TorrentConfig.ListenAddr")
 	if tmpListenAddr != "" {
@@ -145,9 +145,9 @@ func (clientConfig *ClientSetting) loadValueFromConfig()() {
 	clientConfig.EngineSetting.TorrentConfig.Debug = globalViper.GetBool("TorrentConfig.Debug")
 	clientConfig.EngineSetting.TorrentConfig.PeerID = globalViper.GetString("TorrentConfig.PeerID")
 
-	clientConfig.EngineSetting.TorrentConfig.EncryptionPolicy.DisableEncryption = globalViper.GetBool("EncryptionPolicy.DisableEncryption")
-	clientConfig.EngineSetting.TorrentConfig.EncryptionPolicy.ForceEncryption = globalViper.GetBool("EncryptionPolicy.ForceEncryption")
-	clientConfig.EngineSetting.TorrentConfig.EncryptionPolicy.PreferNoEncryption = globalViper.GetBool("EncryptionPolicy.PreferNoEncryption")
+	//clientConfig.EngineSetting.TorrentConfig.EncryptionPolicy.DisableEncryption = globalViper.GetBool("EncryptionPolicy.DisableEncryption")
+	//clientConfig.EngineSetting.TorrentConfig.EncryptionPolicy.ForceEncryption = globalViper.GetBool("EncryptionPolicy.ForceEncryption")
+	clientConfig.EngineSetting.TorrentConfig.HeaderObfuscationPolicy.Preferred = !globalViper.GetBool("EncryptionPolicy.PreferNoEncryption")
 
 	//blocklistPath, err := filepath.Abs("biglist.p2p.gz")
 	//if err != nil {
@@ -159,7 +159,7 @@ func (clientConfig *ClientSetting) loadValueFromConfig()() {
 	if clientConfig.EngineSetting.EnableDefaultTrackers {
 		trackerPath, err := filepath.Abs("tracker.txt")
 		if err != nil {
-			clientConfig.Logger.WithFields(log.Fields{"Error":err}).Error("Failed to update trackers list")
+			clientConfig.Logger.WithFields(log.Fields{"Error": err}).Error("Failed to update trackers list")
 		}
 		clientConfig.EngineSetting.DefaultTrackers = clientConfig.getDefaultTrackers(trackerPath, globalViper.GetString("EngineSetting.DefaultTrackerList"))
 	} else {
@@ -167,28 +167,30 @@ func (clientConfig *ClientSetting) loadValueFromConfig()() {
 	}
 
 	if clientConfig.UseSocksproxy {
-		clientConfig.TorrentConfig.ProxyURL = clientConfig.SocksProxyURL
+		clientConfig.TorrentConfig.HTTPProxy = func(request *http.Request) (*url.URL, error) {
+			return url.Parse(clientConfig.SocksProxyURL)
+		}
 	}
 
 	if clientConfig.LoggerSetting.LoggingOutput == "file" {
 		file, err := os.OpenFile("./ant_engine.log", os.O_CREATE|os.O_WRONLY, 0755)
 		if err != nil {
-			clientConfig.Logger.WithFields(log.Fields{"Error":err}).Error("Failed to open log file")
+			clientConfig.Logger.WithFields(log.Fields{"Error": err}).Error("Failed to open log file")
 		} else {
 			clientConfig.Logger.Out = file
 		}
-	}else{
+	} else {
 		clientConfig.Logger.Out = os.Stdout
 	}
 }
 
-func (clientConfig *ClientSetting) loadFromConfigFile()() {
+func (clientConfig *ClientSetting) loadFromConfigFile() {
 	globalViper.SetConfigName("config")
 	globalViper.AddConfigPath("./")
 	err := globalViper.ReadInConfig()
 	if err != nil {
-		clientConfig.LoggerSetting.Logger.WithFields(log.Fields{"Detail":err}).Fatal("Can not find config.toml")
-	}else {
+		clientConfig.LoggerSetting.Logger.WithFields(log.Fields{"Detail": err}).Fatal("Can not find config.toml")
+	} else {
 		clientConfig.loadValueFromConfig()
 	}
 	globalViper.WatchConfig()
@@ -199,7 +201,7 @@ func (clientConfig *ClientSetting) loadFromConfigFile()() {
 }
 
 // Load setting from config.toml
-func (clientConfig *ClientSetting) createClientSetting()(){
+func (clientConfig *ClientSetting) createClientSetting() {
 
 	//Default settings
 	clientConfig.LoggerSetting.Logger = log.New()
@@ -215,8 +217,7 @@ func GetClientSetting() *ClientSetting {
 	return &clientConfig
 }
 
-
-func (clientConfig *ClientSetting) UpdateConfig (newSetting WebSetting)()  {
+func (clientConfig *ClientSetting) UpdateConfig(newSetting WebSetting) {
 	globalViper.Set("EngineSetting.EnableDefaultTrackers", newSetting.EnableDefaultTrackers)
 	globalViper.Set("EngineSetting.DefaultTrackerList", newSetting.DefaultTrackerList)
 	globalViper.Set("EngineSetting.UseSocksproxy", newSetting.UseSocksproxy)
@@ -236,7 +237,6 @@ func (clientConfig *ClientSetting) UpdateConfig (newSetting WebSetting)()  {
 	haveCreatedConfig = false
 	GetClientSetting()
 }
-
 
 func (clientConfig *ClientSetting) getDefaultTrackers(filepath string, url string) [][]string {
 	datas, err := readLines(filepath)
@@ -266,21 +266,21 @@ func (clientConfig *ClientSetting) getBlocklist(filepath string, blocklistURL st
 	// We trust our temporary directory as we just wrote the file there ourselves.
 	blocklistReader, err := os.Open(filepath)
 	if err != nil {
-		clientConfig.Logger.WithFields(log.Fields{"Error":err}).Error("Error opening blocklist")
+		clientConfig.Logger.WithFields(log.Fields{"Error": err}).Error("Error opening blocklist")
 		return nil
 	}
 
 	// Extract file.
 	gzipReader, err := gzip.NewReader(blocklistReader)
 	if err != nil {
-		clientConfig.Logger.WithFields(log.Fields{"Error":err}).Error("Error extracting blocklist")
+		clientConfig.Logger.WithFields(log.Fields{"Error": err}).Error("Error extracting blocklist")
 		return nil
 	}
 
 	// Read as iplist.
 	blocklist, err := iplist.NewFromReader(gzipReader)
 	if err != nil {
-		clientConfig.Logger.WithFields(log.Fields{"Error":err}).Error("Error reading blocklist")
+		clientConfig.Logger.WithFields(log.Fields{"Error": err}).Error("Error reading blocklist")
 		return nil
 	}
 	clientConfig.Logger.Debug("Loading blocklist")
@@ -293,8 +293,8 @@ func (clientConfig *ClientSetting) getBlocklist(filepath string, blocklistURL st
 // Read a whole file into the memory and store it as array of lines
 func readLines(path string) (lines []string, err error) {
 	var (
-		file *os.File
-		part []byte
+		file   *os.File
+		part   []byte
 		prefix bool
 	)
 	if file, err = os.Open(path); err != nil {
@@ -328,7 +328,7 @@ func (clientConfig *ClientSetting) downloadFile(downloadURL string, filepath str
 		// Get the data
 		resp, err := http.Get(downloadURL)
 		if err != nil {
-			clientConfig.Logger.WithFields(log.Fields{"Error":err}).Error("Failed to update list")
+			clientConfig.Logger.WithFields(log.Fields{"Error": err}).Error("Failed to update list")
 			return
 		}
 		defer func() {
@@ -341,23 +341,19 @@ func (clientConfig *ClientSetting) downloadFile(downloadURL string, filepath str
 		}()
 		if err != nil {
 			if err != nil {
-				clientConfig.Logger.WithFields(log.Fields{"Error":err}).Error("Failed to create list")
+				clientConfig.Logger.WithFields(log.Fields{"Error": err}).Error("Failed to create list")
 				return
 			}
 		}
-
 
 		// Write the body to file
 		_, err = io.Copy(out, resp.Body)
 		if err != nil {
 			if err != nil {
-				clientConfig.Logger.WithFields(log.Fields{"Error":err}).Error("Failed to trackers list")
+				clientConfig.Logger.WithFields(log.Fields{"Error": err}).Error("Failed to trackers list")
 				return
 			}
 		}
 		clientConfig.Logger.Info("update tracker list successfully")
 	}()
 }
-
-
-

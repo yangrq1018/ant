@@ -165,6 +165,11 @@ function createWindow() {
         icon: path.join(electron_1.app.getAppPath(), 'logo.png'),
         autoHideMenuBar: true,
         titleBarStyle: 'hidden',
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+            enableRemoteModule: true,
+        }
     });
     if (serve) {
         require('electron-reload')(__dirname, {

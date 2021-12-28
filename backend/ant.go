@@ -14,10 +14,10 @@ import (
 )
 
 var (
-	clientConfig 		= setting.GetClientSetting()
-	logger 				= clientConfig.LoggerSetting.Logger
-	torrentEngine 		= engine.GetEngine()
-	nRouter				  *negroni.Negroni
+	clientConfig  = setting.GetClientSetting()
+	logger        = clientConfig.LoggerSetting.Logger
+	torrentEngine = engine.GetEngine()
+	nRouter       *negroni.Negroni
 )
 
 func runAPP() {
@@ -26,13 +26,13 @@ func runAPP() {
 		nRouter = router.InitRouter()
 		err := http.ListenAndServe(clientConfig.ConnectSetting.Addr, nRouter)
 		if err != nil {
-			logger.WithFields(log.Fields{"Error":err}).Fatal("Failed to created http service")
+			logger.WithFields(log.Fields{"Error": err}).Fatal("Failed to created http service")
 		}
 
 	}()
 }
 
-func cleanUp()  {
+func cleanUp() {
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt,
@@ -41,13 +41,13 @@ func cleanUp()  {
 			syscall.SIGTERM,
 			syscall.SIGQUIT)
 		<-c
-		log.Info("The progame will stop!")
+		log.Info("The programme will stop!")
 		torrentEngine.Cleanup()
 		os.Exit(0)
 	}()
 }
 
-func test()  {
+func test() {
 
 }
 func main() {
@@ -56,4 +56,3 @@ func main() {
 	test()
 	runtime.Goexit()
 }
-

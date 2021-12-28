@@ -53,7 +53,7 @@ if (currentOS === 'linux' || currentOS === 'darwin')
     buildCmd = util.format('CGO_ENABLED=0 GOOS=%s GOARCH=%s go build ant.go', aimPlatform, aimArch);
 }else if (currentOS === 'win32')
 {
-    buildCmd = util.format('SET CGO_ENABLED=0 SET GOOS=%s SET GOARCH=%s go build ant.go', aimPlatform, aimArch);
+    buildCmd = util.format('go build ant.go');
 }else
 {
     console.log("Not support such platform");
