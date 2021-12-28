@@ -2,6 +2,8 @@ module github.com/anatasluo/ant/backend
 
 go 1.17
 
+replace github.com/anacrolix/torrent => github.com/yangrq1018/torrent v1.38.1-0.20211214155719-cfd9b7aeec8d
+
 require (
 	github.com/anacrolix/missinggo v1.3.0
 	github.com/anacrolix/torrent v1.38.0
@@ -24,9 +26,9 @@ require (
 	github.com/Sereal/Sereal v0.0.0-20210713121911-8c71d8dbe594 // indirect
 	github.com/anacrolix/chansync v0.3.0 // indirect
 	github.com/anacrolix/confluence v1.9.0 // indirect
-	github.com/anacrolix/dht/v2 v2.13.0 // indirect
+	github.com/anacrolix/dht/v2 v2.13.1-0.20211209181115-6ae2bd446b12 // indirect
 	github.com/anacrolix/envpprof v1.1.1 // indirect
-	github.com/anacrolix/go-libutp v1.0.4 // indirect
+	github.com/anacrolix/go-libutp v1.1.0 // indirect
 	github.com/anacrolix/log v0.10.0 // indirect
 	github.com/anacrolix/missinggo/perf v1.0.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.5.2 // indirect
