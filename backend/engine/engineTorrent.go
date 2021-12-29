@@ -2,25 +2,31 @@ package engine
 
 import (
 	"errors"
-	"github.com/anacrolix/torrent"
-	"github.com/anacrolix/torrent/metainfo"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/anacrolix/torrent"
+	"github.com/anacrolix/torrent/metainfo"
+	log "github.com/sirupsen/logrus"
 )
 
 func (engine *Engine) AddOneTorrentFromFile(filepathAbs string) (tmpTorrent *torrent.Torrent, err error) {
 	torrentMetaInfo, err := metainfo.LoadFromFile(filepathAbs)
 	if err == nil {
-		//To solve problem of different variable scope
-		needMoreOperation := false
-		tmpTorrent, needMoreOperation = engine.checkOneHash(torrentMetaInfo.HashInfoBytes())
-		if needMoreOperation {
-			tmpTorrent, err = engine.TorrentEngine.AddTorrent(torrentMetaInfo)
-			engine.EngineRunningInfo.AddOneTorrent(tmpTorrent)
-			engine.SaveInfo()
-		}
+		return engine.AddOneTorrentFromInfoHash(torrentMetaInfo)
+	}
+	return tmpTorrent, err
+}
+
+func (engine *Engine) AddOneTorrentFromInfoHash(torrentMetaInfo *metainfo.MetaInfo) (tmpTorrent *torrent.Torrent, err error) {
+	//To solve problem of different variable scope
+	needMoreOperation := false
+	tmpTorrent, needMoreOperation = engine.checkOneHash(torrentMetaInfo.HashInfoBytes())
+	if needMoreOperation {
+		tmpTorrent, err = engine.TorrentEngine.AddTorrent(torrentMetaInfo)
+		engine.EngineRunningInfo.AddOneTorrent(tmpTorrent)
+		engine.SaveInfo()
 	}
 	return tmpTorrent, err
 }
@@ -64,9 +70,9 @@ func (engine *Engine) AddOneTorrentFromMagnet(linkAddress string) (tmpTorrent *t
 		if needMoreOperation {
 			engine.EngineRunningInfo.AddOneTorrentFromMagnet(infoHash)
 			extendLog, _ := engine.EngineRunningInfo.TorrentLogExtends[infoHash]
+			engine.EngineRunningInfo.MagnetNum++
+			tmpTorrent, err = engine.TorrentEngine.AddMagnet(linkAddress)
 			go func() {
-				engine.EngineRunningInfo.MagnetNum++
-				tmpTorrent, err = engine.TorrentEngine.AddMagnet(linkAddress)
 				select {
 				case <-tmpTorrent.GotInfo():
 					if err != nil {
@@ -89,7 +95,6 @@ func (engine *Engine) AddOneTorrentFromMagnet(linkAddress string) (tmpTorrent *t
 			}()
 		}
 	} else {
-		tmpTorrent = nil
 		err = errors.New("Invalid address")
 	}
 	return tmpTorrent, err
