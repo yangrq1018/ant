@@ -47,12 +47,8 @@ func cleanUp() {
 	}()
 }
 
-func test() {
-
-}
 func main() {
 	runAPP()
 	cleanUp()
-	test()
 	runtime.Goexit()
 }

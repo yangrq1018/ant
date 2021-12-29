@@ -132,7 +132,6 @@ func (clientConfig *ClientSetting) loadValueFromConfig() {
 	if tmpListenAddr != "" {
 		clientConfig.EngineSetting.TorrentConfig.SetListenAddr(tmpListenAddr)
 	}
-	clientConfig.EngineSetting.TorrentConfig.ListenPort = clientConfig.ConnectSetting.Port
 	clientConfig.EngineSetting.TorrentConfig.ListenPort = globalViper.GetInt("TorrentConfig.ListenPort")
 	clientConfig.EngineSetting.TorrentConfig.DisablePEX = globalViper.GetBool("TorrentConfig.DisablePEX")
 	clientConfig.EngineSetting.TorrentConfig.NoDHT = globalViper.GetBool("TorrentConfig.NoDHT")

@@ -43,7 +43,7 @@
   httpuseragent = ""
   ipblocklist = ""
   listenaddr = ""
-  listenport = 0
+  listenport = 42096
   nodht = false
   noupload = false
   peerid = ""
