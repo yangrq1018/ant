@@ -316,6 +316,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
     return 'https://itorrents.org/torrent/' + infohash + '.torrent';
   }
 
+  // todo: support multiple lines like thunder
   downloadMagnet(magnetURL: string) {
     this.modalService.dismissAll();
     magnetURL = _.trim(magnetURL);
@@ -343,9 +344,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
       if (this.currentMagnet === undefined) {
         this.currentMagnet = magnetURL;
         alert('Add magnet successfully');
-        //fixme
-        console.log('call webview.downloadURL with ' + this.getTorrentFromInfoHash(infoHash));
-        // this.webview.downloadURL(this.getTorrentFromInfoHash(infoHash));
+        this.webview.downloadURL(this.getTorrentFromInfoHash(infoHash));
         const tmpThis = this;
         setTimeout(() => {
           if (tmpThis.currentMagnet !== undefined) {

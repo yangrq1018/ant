@@ -48,7 +48,7 @@ button {
   background-color: $nav_background_color;
   margin: 15px;
   border-radius: 20px;
-  min-height: 10%;
+  min-height: 120px;
   cursor: pointer;
 }
 
@@ -64,7 +64,7 @@ button {
 
 .torrentName {
   font-size: 100%;
-  margin-top: 1rem;
+  margin-top: 0.8rem;
   margin-bottom: 0;
   height: 25%;
   color: #eb5c2f;
@@ -80,7 +80,7 @@ button {
 }
 
 .torrentInfo {
-  height: 60%;
+  height: 70%;
   font-size: 0.7em;
   font-style: italic;
   padding-top: 1%;
