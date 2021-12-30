@@ -319,12 +319,31 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
   downloadMagnet(magnetURL: string) {
     this.modalService.dismissAll();
     magnetURL = _.trim(magnetURL);
+
+    if (magnetURL.startsWith("infohash:")) {
+      const infoHash = magnetURL.toUpperCase();
+      this.currentMagnet = magnetURL;
+      alert('Add magnet successfully');
+      const tmpThis = this;
+      setTimeout(() => {
+        if (tmpThis.currentMagnet !== undefined) {
+          this.messagesService.add('use engine to resolve magnet url');
+          tmpThis.currentMagnet = undefined;
+          this.sendMagnet(magnetURL);
+        } else {
+          // console.log('Solve it by itorrents, nothing more');
+        }
+      }, 1000);
+      return 
+    }
+
     const torrent = magnetDecode(magnetURL);
     if (torrent.infoHash !== undefined && torrent.infoHash !== '' && torrent.infoHash.length === 40) {
       const infoHash = torrent.infoHash.toUpperCase();
       if (this.currentMagnet === undefined) {
         this.currentMagnet = magnetURL;
         alert('Add magnet successfully');
+        //fixme
         console.log('call webview.downloadURL with ' + this.getTorrentFromInfoHash(infoHash));
         // this.webview.downloadURL(this.getTorrentFromInfoHash(infoHash));
         const tmpThis = this;
@@ -336,7 +355,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
           } else {
             // console.log('Solve it by itorrents, nothing more');
           }
-        }, 10000);
+        }, 1000);
       } else {
         alert('One magnet is handing, please wait a moment');
       }

@@ -16,7 +16,7 @@ var upgrader = websocket.Upgrader{
 }
 
 //TODO : close handle
-func torrentProgress (w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func torrentProgress(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	logger.Info("websocket created!")
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -32,8 +32,9 @@ func torrentProgress (w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	for {
 
 		select {
-			case cmdID := <- runningEngine.EngineRunningInfo.EngineCMD: {
-				logger.Debug("Send CMD Now", cmdID)
+		case cmdID := <-runningEngine.EngineRunningInfo.EngineCMD:
+			{
+				logger.Debug("Send CMD Now: ", cmdID)
 				if cmdID == engine.RefreshInfo {
 					resInfo.MessageType = engine.RefreshInfo
 					err = conn.WriteJSON(resInfo)
@@ -42,7 +43,7 @@ func torrentProgress (w http.ResponseWriter, r *http.Request, ps httprouter.Para
 					}
 				}
 			}
-			default:
+		default:
 		}
 		err = conn.ReadJSON(&tmp)
 		if err != nil {
@@ -71,7 +72,6 @@ func torrentProgress (w http.ResponseWriter, r *http.Request, ps httprouter.Para
 
 }
 
-func handleWS (router *httprouter.Router)  {
+func handleWS(router *httprouter.Router) {
 	router.GET("/ws", torrentProgress)
 }
-

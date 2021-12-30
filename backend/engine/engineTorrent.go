@@ -49,8 +49,10 @@ func (engine *Engine) checkOneHash(infoHash metainfo.Hash) (tmpTorrent *torrent.
 	return
 }
 
+// AddOneTorrentFromMagnet support 'magnet:' and 'infohash:'
 func (engine *Engine) AddOneTorrentFromMagnet(linkAddress string) (tmpTorrent *torrent.Torrent, err error) {
-	if strings.HasPrefix(linkAddress, "magnet:") || strings.HasPrefix(linkAddress, "infohash:") {
+	isMagnet, isInfoHash := strings.HasPrefix(linkAddress, "magnet:"), strings.HasPrefix(linkAddress, "infohash:")
+	if isMagnet || isInfoHash {
 		var infoHash metainfo.Hash
 		if strings.HasPrefix(linkAddress, "magnet:") {
 			var torrentMetaInfo *torrent.TorrentSpec
@@ -71,7 +73,15 @@ func (engine *Engine) AddOneTorrentFromMagnet(linkAddress string) (tmpTorrent *t
 			engine.EngineRunningInfo.AddOneTorrentFromMagnet(infoHash)
 			extendLog, _ := engine.EngineRunningInfo.TorrentLogExtends[infoHash]
 			engine.EngineRunningInfo.MagnetNum++
-			tmpTorrent, err = engine.TorrentEngine.AddMagnet(linkAddress)
+
+			if isMagnet {
+				tmpTorrent, err = engine.TorrentEngine.AddMagnet(linkAddress)
+			} else {
+				tmpTorrent, _ = engine.TorrentEngine.AddTorrentInfoHash(infoHash)
+			}
+			if err != nil {
+				return
+			}
 			go func() {
 				select {
 				case <-tmpTorrent.GotInfo():
