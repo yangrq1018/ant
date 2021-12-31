@@ -30,6 +30,7 @@ func GetEngine() *Engine {
 	return &onlyEngine
 }
 
+// this could be slow if there are a lot of torrents to be recovered
 func (engine *Engine) initAndRunEngine() {
 	engine.TorrentDB = GetTorrentDB(clientConfig.EngineSetting.TorrentDBPath)
 
@@ -45,7 +46,7 @@ func (engine *Engine) initAndRunEngine() {
 	engine.EngineRunningInfo = &EngineInfo{}
 	engine.EngineRunningInfo.init()
 
-	//Get info from storm database
+	// recover from storm database
 	engine.setEnvironment()
 }
 
@@ -56,13 +57,15 @@ func (engine *Engine) setEnvironment() {
 	logger.Debug("Number of torrent(s) in db is ", len(engine.EngineRunningInfo.TorrentLogs))
 
 	for _, singleLog := range engine.EngineRunningInfo.TorrentLogs {
-
 		if singleLog.Status != CompletedStatus {
 			_, tmpErr := engine.TorrentEngine.AddTorrent(&singleLog.MetaInfo)
 			if tmpErr != nil {
 				logger.WithFields(log.Fields{"Error": tmpErr}).Info("Failed to add torrent to client")
 			} else {
-				logger.Infof("SetEnvironment: add torrent %v to client", singleLog.MetaInfo.HashInfoBytes())
+				logger.Infof("SetEnvironment: add torrent %v %v %v to client",
+					singleLog.TorrentName,
+					singleLog.MetaInfo.HashInfoBytes(),
+					singleLog.StoragePath)
 			}
 		}
 	}
