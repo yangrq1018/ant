@@ -9,12 +9,13 @@ import (
 )
 
 var (
-	clientConfig 			= setting.GetClientSetting()
-	runningEngine		 	= engine.GetEngine()
-	logger 					= clientConfig.LoggerSetting.Logger
+	clientConfig  = setting.GetClientSetting()
+	runningEngine *engine.Engine
+	logger        = clientConfig.LoggerSetting.Logger
 )
 
 func InitRouter() *negroni.Negroni {
+	runningEngine = engine.GetEngine()
 	router := httprouter.New()
 
 	// Enable router

@@ -6,13 +6,13 @@ import (
 )
 
 type TorrentDB struct {
-	DB 		*storm.DB
-	Path	string
+	DB   *storm.DB
+	Path string
 }
 
 func GetTorrentDB(dbPath string) *TorrentDB {
 	db, err := storm.Open(dbPath)
-	var torrentDB	TorrentDB
+	var torrentDB TorrentDB
 	torrentDB.DB = db
 	torrentDB.Path = dbPath
 	if err != nil {
@@ -21,29 +21,20 @@ func GetTorrentDB(dbPath string) *TorrentDB {
 	return &torrentDB
 }
 
-func (TorrentDB *TorrentDB)Cleanup()() {
+func (TorrentDB *TorrentDB) Cleanup() {
 	if TorrentDB.DB != nil {
 		err := TorrentDB.DB.Close()
 		if err != nil {
-			logger.WithFields(log.Fields{"Detail":err}).Error("Failed to closed database")
+			logger.WithFields(log.Fields{"Detail": err}).Error("Failed to closed database")
 		}
 	}
 }
 
-func (TorrentDB *TorrentDB)GetLogs(torrentLogs *TorrentLogsAndID)() {
-	torrentLogs.ID = TorrentLogsID;
+func (TorrentDB *TorrentDB) GetLogs(torrentLogs *TorrentLogsAndID) {
+	torrentLogs.ID = TorrentLogsID
 	err := TorrentDB.DB.One("ID", TorrentLogsID, torrentLogs)
 	if err != nil {
-		logger.WithFields(log.Fields{"Error":err}).Info("Init running queue now")
+		logger.WithFields(log.Fields{"Error": err}).Info("Init running queue now")
 	}
 	return
 }
-
-
-
-
-
-
-
-
-

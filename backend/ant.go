@@ -14,10 +14,9 @@ import (
 )
 
 var (
-	clientConfig  = setting.GetClientSetting()
-	logger        = clientConfig.LoggerSetting.Logger
-	torrentEngine = engine.GetEngine()
-	nRouter       *negroni.Negroni
+	clientConfig = setting.GetClientSetting()
+	logger       = clientConfig.LoggerSetting.Logger
+	nRouter      *negroni.Negroni
 )
 
 func runAPP() {
@@ -42,7 +41,7 @@ func cleanUp() {
 			syscall.SIGQUIT)
 		<-c
 		log.Info("The programme will stop!")
-		torrentEngine.Cleanup()
+		engine.GetEngine().Cleanup()
 		os.Exit(0)
 	}()
 }

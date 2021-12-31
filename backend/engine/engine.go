@@ -6,37 +6,37 @@ import (
 	"github.com/anatasluo/ant/backend/setting"
 	log "github.com/sirupsen/logrus"
 	"path/filepath"
+	"sync"
 )
 
 type Engine struct {
-	TorrentEngine		*torrent.Client
-	TorrentDB			*TorrentDB
-	WebInfo				*WebviewInfo
-	EngineRunningInfo	*EngineInfo
+	TorrentEngine     *torrent.Client
+	TorrentDB         *TorrentDB
+	WebInfo           *WebviewInfo
+	EngineRunningInfo *EngineInfo
 }
 
 var (
-	onlyEngine				Engine
-	hasCreatedEngine	= 	false
-	clientConfig 		=	setting.GetClientSetting()
-	logger 				=	clientConfig.LoggerSetting.Logger
+	onlyEngine     Engine
+	onlyEngineOnce sync.Once
+	clientConfig   = setting.GetClientSetting()
+	logger         = clientConfig.LoggerSetting.Logger
 )
 
 func GetEngine() *Engine {
-	if hasCreatedEngine == false {
+	onlyEngineOnce.Do(func() {
 		onlyEngine.initAndRunEngine()
-		hasCreatedEngine = true
-	}
+	})
 	return &onlyEngine
 }
 
-func (engine *Engine)initAndRunEngine()()  {
+func (engine *Engine) initAndRunEngine() {
 	engine.TorrentDB = GetTorrentDB(clientConfig.EngineSetting.TorrentDBPath)
 
 	var tmpErr error
 	engine.TorrentEngine, tmpErr = torrent.NewClient(&clientConfig.EngineSetting.TorrentConfig)
 	if tmpErr != nil {
-		logger.WithFields(log.Fields{"Error":tmpErr}).Error("Failed to Created torrent engine")
+		logger.WithFields(log.Fields{"Error": tmpErr}).Error("Failed to Created torrent engine")
 	}
 
 	engine.WebInfo = &WebviewInfo{}
@@ -49,7 +49,7 @@ func (engine *Engine)initAndRunEngine()()  {
 	engine.setEnvironment()
 }
 
-func (engine *Engine)setEnvironment()() {
+func (engine *Engine) setEnvironment() {
 
 	engine.TorrentDB.GetLogs(&engine.EngineRunningInfo.TorrentLogsAndID)
 
@@ -60,22 +60,24 @@ func (engine *Engine)setEnvironment()() {
 		if singleLog.Status != CompletedStatus {
 			_, tmpErr := engine.TorrentEngine.AddTorrent(&singleLog.MetaInfo)
 			if tmpErr != nil {
-				logger.WithFields(log.Fields{"Error":tmpErr}).Info("Failed to add torrent to client")
+				logger.WithFields(log.Fields{"Error": tmpErr}).Info("Failed to add torrent to client")
+			} else {
+				logger.Infof("SetEnvironment: add torrent %v to client", singleLog.MetaInfo.HashInfoBytes())
 			}
 		}
 	}
 	engine.UpdateInfo()
 }
 
-func (engine *Engine)Restart()() {
+func (engine *Engine) Restart() {
 
 	logger.Info("Restart engine")
 
 	//To handle problems caused by change of settings
 	for index := range engine.EngineRunningInfo.TorrentLogs {
-		if engine.EngineRunningInfo.TorrentLogs[index].Status != CompletedStatus && engine.EngineRunningInfo.TorrentLogs[index].StoragePath != clientConfig.TorrentConfig.DataDir{
+		if engine.EngineRunningInfo.TorrentLogs[index].Status != CompletedStatus && engine.EngineRunningInfo.TorrentLogs[index].StoragePath != clientConfig.TorrentConfig.DataDir {
 			filePath := filepath.Join(engine.EngineRunningInfo.TorrentLogs[index].StoragePath, engine.EngineRunningInfo.TorrentLogs[index].TorrentName)
-			log.WithFields(log.Fields{"Path":filePath}).Info("To restart engine, these unfinished files will be deleted")
+			log.WithFields(log.Fields{"Path": filePath}).Info("To restart engine, these unfinished files will be deleted")
 			singleTorrent, torrentExist := engine.GetOneTorrent(engine.EngineRunningInfo.TorrentLogs[index].HashInfoBytes().HexString())
 			if torrentExist {
 				singleTorrent.Drop()
@@ -90,18 +92,16 @@ func (engine *Engine)Restart()() {
 
 }
 
-func (engine *Engine)SaveInfo()() {
+func (engine *Engine) SaveInfo() {
 	//fmt.Printf("%+v\n", engine.EngineRunningInfo.TorrentLogsAndID);
 	tmpErr := engine.TorrentDB.DB.Save(&engine.EngineRunningInfo.TorrentLogsAndID)
 	if tmpErr != nil {
-		logger.WithFields(log.Fields{"Error":tmpErr}).Fatal("Failed to save torrent queues")
+		logger.WithFields(log.Fields{"Error": tmpErr}).Fatal("Failed to save torrent queues")
 	}
 	//fmt.Println("save it successfully")
 }
 
-func (engine *Engine)Cleanup()() {
-
-	hasCreatedEngine = false
+func (engine *Engine) Cleanup() {
 	engine.UpdateInfo()
 
 	for index := range engine.EngineRunningInfo.TorrentLogs {
@@ -115,10 +115,10 @@ func (engine *Engine)Cleanup()() {
 					logger.Info("One magnet will be deleted " + magnetTorrent.String())
 					magnetTorrent.Drop()
 				}
-			}else if engine.EngineRunningInfo.TorrentLogs[index].Status == RunningStatus {
+			} else if engine.EngineRunningInfo.TorrentLogs[index].Status == RunningStatus {
 				engine.StopOneTorrent(engine.EngineRunningInfo.TorrentLogs[index].HashInfoBytes().HexString())
 				engine.EngineRunningInfo.TorrentLogs[index].Status = StoppedStatus
-			}else if engine.EngineRunningInfo.TorrentLogs[index].Status == QueuedStatus{
+			} else if engine.EngineRunningInfo.TorrentLogs[index].Status == QueuedStatus {
 				engine.EngineRunningInfo.TorrentLogs[index].Status = StoppedStatus
 			}
 		}
@@ -139,39 +139,3 @@ func (engine *Engine)Cleanup()() {
 	engine.TorrentEngine.Close()
 	engine.TorrentDB.Cleanup()
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
