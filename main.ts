@@ -5,11 +5,12 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { execFile, ChildProcess } from 'child_process';
 
-require('update-electron-app')();
+// require('update-electron-app')();
 
-let win: BrowserWindow, serve;
+let win: BrowserWindow, serve, clientOnly;
 const args = process.argv.slice(1);
 serve = args.some(val => val === '--serve');
+clientOnly = args.some(val => val === '--client')
 
 const aimVersion = app.getVersion();
 const gotTheLock = app.requestSingleInstanceLock();
@@ -21,7 +22,7 @@ let processExit: Boolean = false;
 if (gotTheLock) {
     try {
         // run torrent engine
-        if (!serve) {
+        if (!serve && !clientOnly) {
             runEngine();
         }
         // This method will be called when Electron has finished
@@ -183,7 +184,7 @@ function createWindow() {
         }
     });
 
-    if (serve) {
+    if (serve && !clientOnly) {
         require('electron-reload')(__dirname, {
             electron: require(`${__dirname}/node_modules/electron`)
         });
@@ -196,7 +197,7 @@ function createWindow() {
         }));
     }
 
-    if (serve) {
+    if (serve && !clientOnly) {
         win.webContents.openDevTools();
     }
 

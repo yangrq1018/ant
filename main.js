@@ -6,10 +6,11 @@ var url = require("url");
 var fs = require("fs");
 var os = require("os");
 var child_process_1 = require("child_process");
-require('update-electron-app')();
-var win, serve;
+// require('update-electron-app')();
+var win, serve, clientOnly;
 var args = process.argv.slice(1);
 serve = args.some(function (val) { return val === '--serve'; });
+clientOnly = args.some(function (val) { return val === '--client'; });
 var aimVersion = electron_1.app.getVersion();
 var gotTheLock = electron_1.app.requestSingleInstanceLock();
 var tray = null;
@@ -18,7 +19,7 @@ var processExit = false;
 if (gotTheLock) {
     try {
         // run torrent engine
-        if (!serve) {
+        if (!serve && !clientOnly) {
             runEngine();
         }
         // This method will be called when Electron has finished
@@ -171,7 +172,7 @@ function createWindow() {
             enableRemoteModule: true,
         }
     });
-    if (serve) {
+    if (serve && !clientOnly) {
         require('electron-reload')(__dirname, {
             electron: require(__dirname + "/node_modules/electron")
         });
@@ -184,7 +185,7 @@ function createWindow() {
             slashes: true
         }));
     }
-    if (serve) {
+    if (serve && !clientOnly) {
         win.webContents.openDevTools();
     }
     win.on('minimize', function (evt) { });

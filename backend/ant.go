@@ -27,7 +27,6 @@ func runAPP() {
 		if err != nil {
 			logger.WithFields(log.Fields{"Error": err}).Fatal("Failed to created http service")
 		}
-
 	}()
 }
 
