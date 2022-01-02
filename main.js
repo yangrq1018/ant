@@ -120,7 +120,7 @@ function runEngine() {
         console.log('stderr: ' + data);
     });
     torrentEngine.on('close', function (code) {
-        console.log('out code：' + code);
+        console.log('out code:' + code);
         exitApp();
     });
 }

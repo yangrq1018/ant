@@ -236,7 +236,7 @@ func (engine *Engine) StopOneTorrent(hexString string) (stopped bool) {
 func (engine *Engine) DelOneTorrent(hexString string) (deleted bool) {
 	deleted = false
 
-	for index := range engine.EngineRunningInfo.TorrentLogs {
+	for index := 0; index < len(engine.EngineRunningInfo.TorrentLogs); index++ {
 		if engine.EngineRunningInfo.TorrentLogs[index].Status != AnalysingStatus && engine.EngineRunningInfo.TorrentLogs[index].HashInfoBytes().HexString() == hexString {
 			if engine.EngineRunningInfo.TorrentLogs[index].Status == RunningStatus {
 				engine.StopOneTorrent(hexString)
@@ -255,21 +255,18 @@ func (engine *Engine) DelOneTorrent(hexString string) (deleted bool) {
 			delFiles(filePath)
 			deleted = true
 		} else if engine.EngineRunningInfo.TorrentLogs[index].Status == AnalysingStatus && engine.EngineRunningInfo.TorrentLogs[index].TorrentName == hexString {
-
 			//Magnet hash is stored in torrentName
 			torrentHash := metainfo.Hash{}
 			_ = torrentHash.FromHexString(engine.EngineRunningInfo.TorrentLogs[index].TorrentName)
-			extendLog, _ := engine.EngineRunningInfo.TorrentLogExtends[torrentHash]
+			extendLog := engine.EngineRunningInfo.TorrentLogExtends[torrentHash]
 			extendLog.MagnetAnalyseChan <- true
-			select {
-			case <-extendLog.MagnetDelChan:
-				engine.EngineRunningInfo.TorrentLogs = append(engine.EngineRunningInfo.TorrentLogs[:index], engine.EngineRunningInfo.TorrentLogs[index+1:]...)
-				engine.UpdateInfo()
-				engine.SaveInfo()
-				deleted = true
-				logger.Debug("Delete Magnet Done")
-				return
-			}
+			<-extendLog.MagnetDelChan
+			engine.EngineRunningInfo.TorrentLogs = append(engine.EngineRunningInfo.TorrentLogs[:index], engine.EngineRunningInfo.TorrentLogs[index+1:]...)
+			engine.UpdateInfo()
+			engine.SaveInfo()
+			deleted = true
+			logger.Debug("Delete Magnet Done")
+			return
 		}
 	}
 	return

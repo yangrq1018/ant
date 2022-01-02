@@ -5,19 +5,21 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/iplist"
 	"github.com/pelletier/go-toml"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golang.org/x/time/rate"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"os"
-	"path/filepath"
-	"strconv"
 )
 
 var (
@@ -188,15 +190,15 @@ func (cc *ClientSetting) loadFromConfigFile() {
 	globalViper.AddConfigPath("./")
 	err := globalViper.ReadInConfig()
 	if err != nil {
-		cc.LoggerSetting.Logger.WithFields(log.Fields{"Detail": err}).Fatal("Can not find config.toml")
+		cc.LoggerSetting.Logger.WithFields(log.Fields{"Detail": err}).Error("Can not find config.toml")
 	} else {
 		cc.loadValueFromConfig()
 	}
 	globalViper.WatchConfig()
-	//globalViper.OnConfigChange(func(e fsnotify.Event) {
-	//	fmt.Println("Config file changed:", e.Name)
-	//	//cc.loadValueFromConfig()
-	//})
+	// globalViper.OnConfigChange(func(e fsnotify.Event) {
+	// 	fmt.Println("Config file changed:", e.Name)
+	// 	//cc.loadValueFromConfig()
+	// })
 }
 
 // Load setting from config.toml
@@ -209,7 +211,7 @@ func (cc *ClientSetting) createClientSetting() {
 }
 
 func GetClientSetting() *ClientSetting {
-	if haveCreatedConfig == false {
+	if !haveCreatedConfig {
 		haveCreatedConfig = true
 		clientConfig.createClientSetting()
 	}
@@ -228,6 +230,9 @@ func (cc *ClientSetting) UpdateConfig(newSetting WebSetting) {
 	globalViper.Set("EngineSetting.DisableIPv6", newSetting.DisableIPv6)
 
 	tr, err := toml.TreeFromMap(globalViper.AllSettings())
+	if err != nil {
+		cc.Logger.Fatal("Unable to load toml tree")
+	}
 	trS := tr.String()
 	err = ioutil.WriteFile("config.toml", []byte(trS), 0644)
 	if err != nil {
@@ -282,6 +287,12 @@ func (cc *ClientSetting) getBlocklist(filepath string, blocklistURL string) ipli
 		cc.Logger.WithFields(log.Fields{"Error": err}).Error("Error reading blocklist")
 		return nil
 	}
+	// block this studip IP
+	blocklist.Add(iplist.Range{
+		First:       net.ParseIP("0.0.0.0"),
+		Last:        net.ParseIP("0.0.0.0"),
+		Description: "wildcard",
+	})
 	cc.Logger.Debug("Loading blocklist")
 
 	//Update list if possible for next time
@@ -351,5 +362,5 @@ func (cc *ClientSetting) downloadFile(downloadURL string, filepath string) {
 			return
 		}
 	}
-	cc.Logger.Info("update file successfully")
+	cc.Logger.Infof("update file %s successfully", filepath)
 }

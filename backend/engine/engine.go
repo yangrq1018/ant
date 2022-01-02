@@ -67,6 +67,9 @@ func (engine *Engine) setEnvironment() {
 			engine.EngineRunningInfo.TorrentLogs[i].Status = StoppedStatus
 		}
 	}
+	if len(engine.EngineRunningInfo.TorrentLogs) > 0 {
+		logger.Info("loaded all torrents from TorrentDB")
+	}
 	engine.UpdateInfo()
 }
 
