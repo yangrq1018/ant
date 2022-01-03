@@ -218,6 +218,10 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
     this.torrentService.getSelectedTorrents(this.status)
         .subscribe((datas: Torrent[]) => {
           this.messagesService.add('torrents list update');
+          if (datas === null) {
+            // 因为go的空指针JSON序列化是null
+            datas = [];
+          }
           this.torrents = datas;
           globalTorrents = this.torrents;
           for (let i = 0; i < this.torrents.length; i ++) {
@@ -344,7 +348,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
       if (this.currentMagnet === undefined) {
         this.currentMagnet = magnetURL;
         alert('Add magnet successfully');
-        this.webview.downloadURL(this.getTorrentFromInfoHash(infoHash));
+        // this.webview.downloadURL(this.getTorrentFromInfoHash(infoHash));
         const tmpThis = this;
         setTimeout(() => {
           if (tmpThis.currentMagnet !== undefined) {
