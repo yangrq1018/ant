@@ -11,23 +11,23 @@ func addOneMagnet(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 	linkAddress := r.FormValue("linkAddress")
 
-	logger.Debug(linkAddress)
-	
+	logger.Infof("request magnet: %s", linkAddress)
+
 	_, err := runningEngine.AddOneTorrentFromMagnet(linkAddress)
 
 	var isAdded bool
 	if err != nil {
-		logger.WithFields(log.Fields{"Error":err}).Error("unable to add a magnet")
+		logger.WithFields(log.Fields{"Error": err}).Error("unable to add a magnet")
 		isAdded = false
-	}else{
+	} else {
 		isAdded = true
 	}
 
 	WriteResponse(w, JsonFormat{
-		"IsAdded":isAdded,
+		"IsAdded": isAdded,
 	})
 }
 
-func handleMagnet(router *httprouter.Router)  {
+func handleMagnet(router *httprouter.Router) {
 	router.POST("/magnet/addOneMagent", addOneMagnet)
 }

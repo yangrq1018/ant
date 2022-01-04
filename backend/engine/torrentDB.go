@@ -36,5 +36,4 @@ func (TorrentDB *TorrentDB) GetLogs(torrentLogs *TorrentLogsAndID) {
 	if err != nil {
 		logger.WithFields(log.Fields{"Error": err}).Info("Init running queue now")
 	}
-	return
 }
