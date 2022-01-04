@@ -194,7 +194,10 @@ func (cc *ClientSetting) loadFromConfigFile() {
 	} else {
 		cc.loadValueFromConfig()
 	}
-	globalViper.WatchConfig()
+	if err == nil {
+		// don't watch config if viper config is not loaded, hang forever
+		globalViper.WatchConfig()
+	}
 	// globalViper.OnConfigChange(func(e fsnotify.Event) {
 	// 	fmt.Println("Config file changed:", e.Name)
 	// 	//cc.loadValueFromConfig()

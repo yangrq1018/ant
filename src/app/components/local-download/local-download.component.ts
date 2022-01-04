@@ -344,7 +344,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
       if (this.currentMagnet === undefined) {
         this.currentMagnet = magnetURL;
         alert('Add magnet successfully');
-        this.webview.downloadURL(this.getTorrentFromInfoHash(infoHash));
+        // this.webview.downloadURL(this.getTorrentFromInfoHash(infoHash));
         const tmpThis = this;
         setTimeout(() => {
           if (tmpThis.currentMagnet !== undefined) {

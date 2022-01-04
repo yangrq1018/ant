@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 func addOneTorrentFromFile(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -83,14 +84,21 @@ func appendRunningTorrents(resInfo []engine.TorrentWebInfo) []engine.TorrentWebI
 		singleTorrentLog, isExist := runningEngine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
 		if isExist && singleTorrentLog.Status != engine.CompletedStatus {
 			switch singleTorrentLog.Status {
-			case engine.StoppedStatus:
-				stopped = append(stopped, *runningEngine.GenerateInfoFromTorrent(singleTorrent))
+			case engine.CompletedStatus:
 			default:
 				resInfo = append(resInfo, *runningEngine.GenerateInfoFromTorrent(singleTorrent))
 			}
 		}
 	}
+	sortTorrents(resInfo)
+	sortTorrents(stopped)
 	return append(resInfo, stopped...)
+}
+
+func sortTorrents(resInfo []engine.TorrentWebInfo) {
+	sort.Slice(resInfo, func(i, j int) bool {
+		return resInfo[i].HexString < resInfo[j].HexString
+	})
 }
 
 func appendCompletedTorrents(resInfo []engine.TorrentWebInfo) []engine.TorrentWebInfo {
@@ -99,24 +107,25 @@ func appendCompletedTorrents(resInfo []engine.TorrentWebInfo) []engine.TorrentWe
 			resInfo = append(resInfo, *runningEngine.GenerateInfoFromLog(singleTorrentLog))
 		}
 	}
+	sortTorrents(resInfo)
 	return resInfo
 }
 
 func getAllTorrents(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	resInfo := []engine.TorrentWebInfo{}
+	var resInfo []engine.TorrentWebInfo
 	resInfo = appendRunningTorrents(resInfo)
 	resInfo = appendCompletedTorrents(resInfo)
 	WriteResponse(w, resInfo)
 }
 
 func getCompletedTorrents(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	resInfo := []engine.TorrentWebInfo{}
+	var resInfo []engine.TorrentWebInfo
 	resInfo = appendCompletedTorrents(resInfo)
 	WriteResponse(w, resInfo)
 }
 
 func getAllEngineTorrents(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	resInfo := []engine.TorrentWebInfo{}
+	var resInfo []engine.TorrentWebInfo
 	resInfo = appendRunningTorrents(resInfo)
 	WriteResponse(w, resInfo)
 }

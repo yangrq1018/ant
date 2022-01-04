@@ -170,7 +170,10 @@ func (engine *Engine) StartDownloadTorrent(hexString string) (downloaded bool) {
 }
 
 func (engine *Engine) CompleteOneTorrent(singleTorrent *torrent.Torrent) {
-	singleTorrentLog, _ := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
+	singleTorrentLog, exist := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
+	if !exist {
+		return
+	}
 	singleTorrentLogExtend, extendExist := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()]
 	<-singleTorrent.GotInfo()
 	//One more check
@@ -191,8 +194,8 @@ func (engine *Engine) CompleteOneTorrent(singleTorrent *torrent.Torrent) {
 
 func (engine *Engine) WaitForCompleted(singleTorrent *torrent.Torrent) {
 	go func() {
-		singleTorrentLog, _ := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
-		singleTorrentLogExtend, _ := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()]
+		singleTorrentLog := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
+		singleTorrentLogExtend := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()]
 		<-singleTorrent.GotInfo()
 		for singleTorrentLog.Status == RunningStatus {
 			if singleTorrent.BytesCompleted() == singleTorrent.Info().TotalLength() {
@@ -209,7 +212,7 @@ func (engine *Engine) WaitForCompleted(singleTorrent *torrent.Torrent) {
 func (engine *Engine) StopOneTorrent(hexString string) (stopped bool) {
 	singleTorrent, torrentExist := engine.GetOneTorrent(hexString)
 	if torrentExist {
-		singleTorrentLog, _ := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
+		singleTorrentLog := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
 		if singleTorrentLog.Status != CompletedStatus {
 			singleTorrentLog.Status = StoppedStatus
 			engine.SaveInfo()

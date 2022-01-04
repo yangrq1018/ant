@@ -55,6 +55,7 @@ func (engine *Engine) setEnvironment() {
 	logger.Debug("Number of torrent(s) in db is ", len(engine.EngineRunningInfo.TorrentLogs))
 	for i, singleLog := range engine.EngineRunningInfo.TorrentLogs {
 		if singleLog.Status != CompletedStatus {
+			// 把未完成的种子添加到下载队列中，初始状态为Stopped
 			_, tmpErr := engine.TorrentEngine.AddTorrent(&singleLog.MetaInfo)
 			if tmpErr != nil {
 				logger.WithFields(log.Fields{"Error": tmpErr}).Info("Failed to add torrent to client")
