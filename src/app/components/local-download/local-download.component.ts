@@ -287,7 +287,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
   private updateInfo(hexString: string) {
     for (let i = 0; i < this.torrents.length; i ++) {
       if (this.torrents[i].HexString === hexString && this.torrents[i].Interval < 0) {
-        this.torrents[i].Interval = window.setInterval(this.getInfo, this.torrentService.refleshTime, hexString);
+        this.torrents[i].Interval = window.setInterval(this.getInfo, this.torrentService.refreshTime, hexString);
       }
     }
   }
@@ -325,7 +325,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
     this.modalService.dismissAll();
     magnetURL = _.trim(magnetURL);
 
-    if (magnetURL.startsWith("infohash:")) {
+    if (magnetURL.startsWith('infohash:')) {
       const infoHash = magnetURL.toUpperCase();
       this.currentMagnet = magnetURL;
       alert('Add magnet successfully');
@@ -339,7 +339,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
           // console.log('Solve it by itorrents, nothing more');
         }
       }, 1000);
-      return 
+      return;
     }
 
     const torrent = magnetDecode(magnetURL);

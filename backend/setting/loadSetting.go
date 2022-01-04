@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	utp "github.com/anacrolix/go-libutp"
+	"github.com/fsnotify/fsnotify"
 	"io"
 	"io/ioutil"
 	"net"
@@ -61,9 +63,9 @@ type ClientSetting struct {
 	LoggerSetting
 }
 
-// These settings can be determined by users
+// WebSetting These settings can be determined by users
 type WebSetting struct {
-	UseSocksproxy         bool
+	UseSocksProxy         bool
 	SocksProxyURL         string
 	MaxEstablishedConns   int
 	Tmpdir                string
@@ -77,7 +79,7 @@ type WebSetting struct {
 func (cc *ClientSetting) GetWebSetting() (webSetting WebSetting) {
 	webSetting.EnableDefaultTrackers = cc.EngineSetting.EnableDefaultTrackers
 	webSetting.DefaultTrackerList = globalViper.GetString("EngineSetting.DefaultTrackerList")
-	webSetting.UseSocksproxy = cc.EngineSetting.UseSocksproxy
+	webSetting.UseSocksProxy = cc.EngineSetting.UseSocksproxy
 	webSetting.SocksProxyURL = cc.EngineSetting.SocksProxyURL
 	webSetting.MaxEstablishedConns = cc.MaxEstablishedConns
 	webSetting.Tmpdir = cc.Tmpdir
@@ -183,6 +185,11 @@ func (cc *ClientSetting) loadValueFromConfig() {
 	} else {
 		cc.Logger.Out = os.Stdout
 	}
+
+	if globalViper.GetBool("LoggerSetting.DisableUTPLogger") {
+		cc.Logger.Info("go-libutp logging turned off")
+		utp.Logger.SetOutput(io.Discard)
+	}
 }
 
 func (cc *ClientSetting) loadFromConfigFile() {
@@ -195,13 +202,14 @@ func (cc *ClientSetting) loadFromConfigFile() {
 		cc.loadValueFromConfig()
 	}
 	if err == nil {
-		// don't watch config if viper config is not loaded, hang forever
+		// don't watch config if viper config is not loaded, hangs
 		globalViper.WatchConfig()
 	}
-	// globalViper.OnConfigChange(func(e fsnotify.Event) {
-	// 	fmt.Println("Config file changed:", e.Name)
-	// 	//cc.loadValueFromConfig()
-	// })
+	globalViper.OnConfigChange(func(e fsnotify.Event) {
+		log.Infof("Config file has changed: %s", e.Name)
+		// this is limited, for TorrentConfig change to take effect, must restart client
+		cc.loadValueFromConfig()
+	})
 }
 
 // Load setting from config.toml
@@ -224,7 +232,7 @@ func GetClientSetting() *ClientSetting {
 func (cc *ClientSetting) UpdateConfig(newSetting WebSetting) {
 	globalViper.Set("EngineSetting.EnableDefaultTrackers", newSetting.EnableDefaultTrackers)
 	globalViper.Set("EngineSetting.DefaultTrackerList", newSetting.DefaultTrackerList)
-	globalViper.Set("EngineSetting.UseSocksproxy", newSetting.UseSocksproxy)
+	globalViper.Set("EngineSetting.UseSocksproxy", newSetting.UseSocksProxy)
 	globalViper.Set("EngineSetting.SocksProxyURL", newSetting.SocksProxyURL)
 	globalViper.Set("EngineSetting.MaxEstablishedConns", newSetting.MaxEstablishedConns)
 	globalViper.Set("EngineSetting.Tmpdir", newSetting.Tmpdir)
@@ -290,16 +298,16 @@ func (cc *ClientSetting) getBlocklist(filepath string, blocklistURL string) ipli
 		cc.Logger.WithFields(log.Fields{"Error": err}).Error("Error reading blocklist")
 		return nil
 	}
-	// block this studip IP
-	blocklist.Add(iplist.Range{
+	// block this stupid IP
+	// since iplist.IPList needs range to be sorted by lower bound, push to top
+	blocklist.PushTop(iplist.Range{
 		First:       net.ParseIP("0.0.0.0"),
 		Last:        net.ParseIP("0.0.0.0"),
 		Description: "wildcard",
 	})
-	cc.Logger.Debug("Loading blocklist")
 
-	//Update list if possible for next time
-	//go cc.downloadFile(blocklistURL, filepath)
+	// Update list if possible for next time
+	go cc.downloadFile(blocklistURL, filepath)
 	return blocklist
 }
 

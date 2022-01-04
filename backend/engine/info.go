@@ -24,7 +24,7 @@ type EngineInfo struct {
 	TorrentLogExtends map[metainfo.Hash]*TorrentLogExtend
 }
 
-//These information is needed in running time
+// TorrentLogExtend This information is needed in running time
 type TorrentLogExtend struct {
 	StatusPub         *pubsub.Subscription
 	HasStatusPub      bool
@@ -33,7 +33,7 @@ type TorrentLogExtend struct {
 	HasMagnetChan     bool
 }
 
-//WebInfo only can be used for show in the website, it is generated from engineInfo
+// TorrentWebInfo WebInfo only can be used for show in the website, it is generated from engineInfo
 type TorrentWebInfo struct {
 	TorrentName   string
 	TotalLength   string
@@ -131,7 +131,8 @@ func (engineInfo *EngineInfo) init() {
 }
 
 func (engineInfo *EngineInfo) AddOneTorrent(singleTorrent *torrent.Torrent) (singleTorrentLog *TorrentLog) {
-	singleTorrentLog, isExist := engineInfo.HashToTorrentLog[singleTorrent.InfoHash()]
+	var isExist bool
+	singleTorrentLog, isExist = engineInfo.HashToTorrentLog[singleTorrent.InfoHash()]
 	if !isExist {
 		singleTorrentLog = createTorrentLogFromTorrent(singleTorrent)
 		engineInfo.TorrentLogs = append(engineInfo.TorrentLogs, *singleTorrentLog)
@@ -140,7 +141,7 @@ func (engineInfo *EngineInfo) AddOneTorrent(singleTorrent *torrent.Torrent) (sin
 	return
 }
 
-//For magnet
+// AddOneTorrentFromMagnet For magnet
 func (engineInfo *EngineInfo) AddOneTorrentFromMagnet(infoHash metainfo.Hash) (singleTorrentLog *TorrentLog) {
 	singleTorrentLog, isExist := engineInfo.HashToTorrentLog[infoHash]
 	if !isExist {
@@ -237,7 +238,7 @@ func generateByteSize(byteSize int64) string {
 	return humanize.Bytes(uint64(byteSize))
 }
 
-//For complete status
+// GenerateInfoFromLog For complete status
 func (engine *Engine) GenerateInfoFromLog(torrentLog TorrentLog) (torrentWebInfo *TorrentWebInfo) {
 	torrentWebInfo, _ = engine.WebInfo.HashToTorrentWebInfo[torrentLog.HashInfoBytes()]
 	torrentWebInfo = &TorrentWebInfo{

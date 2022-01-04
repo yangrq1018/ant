@@ -8,11 +8,8 @@ import (
 
 //Add magnet will let to serious problems, a better way is to get torrent file via magnet and then use addTorrent
 func addOneMagnet(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
 	linkAddress := r.FormValue("linkAddress")
-
-	logger.Infof("request magnet: %s", linkAddress)
-
+	logger.Infof("add magnet request, address: %s", linkAddress)
 	_, err := runningEngine.AddOneTorrentFromMagnet(linkAddress)
 
 	var isAdded bool
@@ -29,5 +26,5 @@ func addOneMagnet(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 }
 
 func handleMagnet(router *httprouter.Router) {
-	router.POST("/magnet/addOneMagent", addOneMagnet)
+	router.POST("/magnet/addOneMagnet", addOneMagnet)
 }

@@ -80,21 +80,29 @@ func (engine *Engine) AddOneTorrentFromMagnet(linkAddress string) (tmpTorrent *t
 				tmpTorrent, _ = engine.TorrentEngine.AddTorrentInfoHash(infoHash)
 			}
 			if err != nil {
+				logger.WithFields(log.Fields{"Error": err, "Torrent": tmpTorrent}).Error("Unable to resolve magnet")
 				return
 			}
 			go func() {
 				select {
 				case <-tmpTorrent.GotInfo():
-					if err != nil {
-						logger.WithFields(log.Fields{"Error": err, "Torrent": tmpTorrent}).Error("Unable to resolve magnet")
+					logger.Debug("Add torrent from magnet, url successfully resolved")
+					engine.EngineRunningInfo.UpdateMagnetInfo(tmpTorrent)
+					engine.GenerateInfoFromTorrent(tmpTorrent)
+					engine.SaveInfo()
+					engine.StartDownloadTorrent(tmpTorrent.InfoHash().HexString())
+					engine.EngineRunningInfo.EngineCMD <- RefreshInfo
+					logger.Debug("It should refresh")
+					// save torrent as file
+					if f, fErr := os.OpenFile(filepath.Join(clientConfig.EngineSetting.Tmpdir, tmpTorrent.Name()+".torrent"), os.O_WRONLY|os.O_CREATE, 0666); err == nil {
+						defer f.Close()
+						info := tmpTorrent.Metainfo()
+						fErr = info.Write(f)
+						if fErr != nil {
+							logger.WithFields(log.Fields{"Error": err, "Torrent": tmpTorrent}).Error("Unable write torrent file")
+						}
 					} else {
-						logger.Debug("Add torrent from magnet")
-						engine.EngineRunningInfo.UpdateMagnetInfo(tmpTorrent)
-						engine.GenerateInfoFromTorrent(tmpTorrent)
-						engine.SaveInfo()
-						engine.StartDownloadTorrent(tmpTorrent.InfoHash().HexString())
-						engine.EngineRunningInfo.EngineCMD <- RefreshInfo
-						logger.Debug("It should refresh")
+						logger.WithFields(log.Fields{"Error": err, "Torrent": tmpTorrent}).Error("Unable save torrent file")
 					}
 				case <-extendLog.MagnetAnalyseChan:
 					tmpTorrent.Drop()
@@ -105,12 +113,12 @@ func (engine *Engine) AddOneTorrentFromMagnet(linkAddress string) (tmpTorrent *t
 			}()
 		}
 	} else {
-		err = errors.New("Invalid address")
+		err = errors.New("invalid address")
 	}
 	return tmpTorrent, err
 }
 
-//Only handle torrent in client
+// GetOneTorrent Only handle torrent in client
 func (engine *Engine) GetOneTorrent(hexString string) (tmpTorrent *torrent.Torrent, isExist bool) {
 	torrentHash := metainfo.Hash{}
 	err := torrentHash.FromHexString(hexString)
@@ -123,8 +131,7 @@ func (engine *Engine) GetOneTorrent(hexString string) (tmpTorrent *torrent.Torre
 
 		//any operation on magnet is forbidden
 		if isExist {
-			torrentLog, _ := engine.EngineRunningInfo.HashToTorrentLog[tmpTorrent.InfoHash()]
-			if torrentLog.Status == AnalysingStatus {
+			if torrentLog, ok := engine.EngineRunningInfo.HashToTorrentLog[tmpTorrent.InfoHash()]; ok && torrentLog.Status == AnalysingStatus {
 				tmpTorrent = nil
 				isExist = false
 			}
@@ -177,8 +184,8 @@ func (engine *Engine) CompleteOneTorrent(singleTorrent *torrent.Torrent) {
 	singleTorrentLogExtend, extendExist := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()]
 	<-singleTorrent.GotInfo()
 	//One more check
+	entry := logger.WithFields(log.Fields{"TorrentName": singleTorrent.Name()})
 	if singleTorrent.BytesCompleted() == singleTorrent.Info().TotalLength() {
-		entry := logger.WithFields(log.Fields{"TorrentName": singleTorrent.Name()})
 		entry.Info("Torrent has been finished, verifying data...")
 		singleTorrent.VerifyData()
 		entry.Infof("Data verified!")
@@ -191,6 +198,8 @@ func (engine *Engine) CompleteOneTorrent(singleTorrent *torrent.Torrent) {
 				singleTorrentLogExtend.StatusPub.Close()
 			}
 		}
+	} else {
+		entry.Warnf("Torrent wants to be marked as finished, but bytes are not totally completed")
 	}
 }
 

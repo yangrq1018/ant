@@ -20,8 +20,8 @@ export class TorrentService {
   downloadOneTorrentUrl = this.configService.baseUrl + '/torrent' + '/startDownload';
   stopTorrentUrl = this.configService.baseUrl + '/torrent' + '/stopDownload';
   deleteTorrentUrl = this.configService.baseUrl + '/torrent' + '/delOne';
-  sendMagnetUrl = this.configService.baseUrl + '/magnet' + '/addOneMagent';
-  refleshTime = 1000;
+  sendMagnetUrl = this.configService.baseUrl + '/magnet' + '/addOneMagnet';
+  refreshTime = 1000;
 
   private formHttpOptions = {
     headers: new HttpHeaders({
@@ -93,7 +93,7 @@ export class TorrentService {
     formData.append('hexString', hexString);
     return this.httpClient.post<JSON>(operateUrl, formData, this.formHttpOptions)
         .pipe(
-            tap(_ => console.log(operateUrl + 'operate torrent')),
+            tap(_ => console.log('operate: ' + operateUrl)),
             catchError(this.handleError<JSON>('failed to operate one torrent'))
         );
   }
