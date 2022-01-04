@@ -175,8 +175,10 @@ func (engine *Engine) CompleteOneTorrent(singleTorrent *torrent.Torrent) {
 	<-singleTorrent.GotInfo()
 	//One more check
 	if singleTorrent.BytesCompleted() == singleTorrent.Info().TotalLength() {
-		logger.WithFields(log.Fields{"TorrentName": singleTorrent.Name()}).Info("Torrent has been finished")
+		entry := logger.WithFields(log.Fields{"TorrentName": singleTorrent.Name()})
+		entry.Info("Torrent has been finished, verifying data...")
 		singleTorrent.VerifyData()
+		entry.Infof("Data verified!")
 		singleTorrentLog.Status = CompletedStatus
 		engine.SaveInfo()
 		if extendExist && singleTorrentLogExtend.HasStatusPub && singleTorrentLogExtend.StatusPub != nil {
