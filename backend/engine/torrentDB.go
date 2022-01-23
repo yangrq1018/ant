@@ -36,4 +36,14 @@ func (TorrentDB *TorrentDB) GetLogs(torrentLogs *TorrentLogsAndID) {
 	if err != nil {
 		logger.WithFields(log.Fields{"Error": err}).Info("Init running queue now")
 	}
+	// remove uninitialized logs
+	var ok []TorrentLog
+	for _, tl := range torrentLogs.TorrentLogs {
+		if tl.InfoBytes == nil {
+			logger.Warnf("torrent %q MetaInfo seems to be uninitialized, remove it from db", tl.TorrentName)
+		} else {
+			ok = append(ok, tl)
+		}
+	}
+	torrentLogs.TorrentLogs = ok
 }

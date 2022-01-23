@@ -53,21 +53,34 @@ func (engine *Engine) initAndRunEngine() {
 func (engine *Engine) setEnvironment() {
 	engine.TorrentDB.GetLogs(&engine.EngineRunningInfo.TorrentLogsAndID)
 	logger.Debug("Number of torrent(s) in db is ", len(engine.EngineRunningInfo.TorrentLogs))
+	var wg sync.WaitGroup
 	for i, singleLog := range engine.EngineRunningInfo.TorrentLogs {
-		if singleLog.Status != CompletedStatus {
+		switch singleLog.Status {
+		case CompletedStatus:
+		default:
 			// 把未完成的种子添加到下载队列中，初始状态为Stopped
-			_, tmpErr := engine.TorrentEngine.AddTorrent(&singleLog.MetaInfo)
-			if tmpErr != nil {
-				logger.WithFields(log.Fields{"Error": tmpErr}).Info("Failed to add torrent to client")
-			} else {
-				logger.Infof("SetEnvironment: add torrent %v %v %v to client",
+			wg.Add(1)
+			go func(i int, singleLog TorrentLog) {
+				defer wg.Done()
+				t, tmpErr := engine.TorrentEngine.AddTorrent(&singleLog.MetaInfo)
+				if tmpErr != nil {
+					logger.WithFields(log.Fields{"Error": tmpErr}).Infof("Failed to add torrent %q to client", singleLog.TorrentName)
+					return
+				}
+				t.AddTrackers(clientConfig.DefaultTrackers)
+				t.SetMaxEstablishedConns(clientConfig.EngineSetting.MaxEstablishedConns)
+				engine.checkExtend(t)
+				engine.WaitForCompleted(t)
+				t.DownloadAll()
+				engine.EngineRunningInfo.TorrentLogs[i].Status = RunningStatus
+				logger.Infof("setEnvironment: added torrent %v %v %v to client",
 					singleLog.TorrentName,
 					singleLog.MetaInfo.HashInfoBytes(),
 					singleLog.StoragePath)
-			}
-			engine.EngineRunningInfo.TorrentLogs[i].Status = StoppedStatus
+			}(i, singleLog)
 		}
 	}
+	wg.Wait()
 	if len(engine.EngineRunningInfo.TorrentLogs) > 0 {
 		logger.Info("loaded all torrents from TorrentDB")
 	}
@@ -108,8 +121,10 @@ func (engine *Engine) Cleanup() {
 	engine.UpdateInfo()
 
 	for index := range engine.EngineRunningInfo.TorrentLogs {
-		if engine.EngineRunningInfo.TorrentLogs[index].Status != CompletedStatus {
-			if engine.EngineRunningInfo.TorrentLogs[index].Status == AnalysingStatus {
+		status := engine.EngineRunningInfo.TorrentLogs[index].Status
+		if status != CompletedStatus {
+			switch status {
+			case AnalysingStatus:
 				aimLog := engine.EngineRunningInfo.TorrentLogs[index]
 				torrentHash := metainfo.Hash{}
 				_ = torrentHash.FromHexString(aimLog.TorrentName)
@@ -118,11 +133,11 @@ func (engine *Engine) Cleanup() {
 					logger.Info("One magnet will be deleted " + magnetTorrent.String())
 					magnetTorrent.Drop()
 				}
-			} else if engine.EngineRunningInfo.TorrentLogs[index].Status == RunningStatus {
+			case RunningStatus:
 				engine.StopOneTorrent(engine.EngineRunningInfo.TorrentLogs[index].HashInfoBytes().HexString())
-				engine.EngineRunningInfo.TorrentLogs[index].Status = StoppedStatus
-			} else if engine.EngineRunningInfo.TorrentLogs[index].Status == QueuedStatus {
-				engine.EngineRunningInfo.TorrentLogs[index].Status = StoppedStatus
+				//engine.EngineRunningInfo.TorrentLogs[index].Status = StoppedStatus
+			case QueuedStatus:
+				//engine.EngineRunningInfo.TorrentLogs[index].Status = StoppedStatus
 			}
 		}
 	}
@@ -141,4 +156,20 @@ func (engine *Engine) Cleanup() {
 
 	engine.TorrentEngine.Close()
 	engine.TorrentDB.Cleanup()
+}
+
+func (engine *Engine) checkExtend(singleTorrent *torrent.Torrent) {
+	//check if extend exist
+	_, extendIsExist := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()]
+	if !extendIsExist {
+		engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()] = &TorrentLogExtend{
+			StatusPub:     singleTorrent.SubscribePieceStateChanges(),
+			HasStatusPub:  true,
+			HasMagnetChan: false,
+		}
+	} else if extendIsExist && !engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].HasStatusPub {
+		logger.Debug("it has extend but no status pub")
+		engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].HasStatusPub = true
+		engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].StatusPub = singleTorrent.SubscribePieceStateChanges()
+	}
 }

@@ -2,7 +2,7 @@ module github.com/anatasluo/ant/backend
 
 go 1.17
 
-replace github.com/anacrolix/torrent => github.com/yangrq1018/torrent v1.38.1-0.20211214155719-cfd9b7aeec8d
+replace github.com/anacrolix/torrent => C:\Users\marti\GolandProjects\torrent
 
 require (
 	github.com/anacrolix/go-libutp v1.1.0

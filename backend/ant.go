@@ -20,6 +20,9 @@ var (
 )
 
 func runAPP() {
+	logger.SetFormatter(&log.TextFormatter{
+		ForceColors: true,
+	})
 	go func() {
 		// Init server router
 		nRouter = router.InitRouter()

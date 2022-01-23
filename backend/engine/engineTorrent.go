@@ -148,26 +148,11 @@ func (engine *Engine) StartDownloadTorrent(hexString string) (downloaded bool) {
 		singleTorrentLog, _ := engine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
 		if singleTorrentLog.Status != RunningStatus {
 			singleTorrentLog.Status = RunningStatus
-			//check if extend exist
-			_, extendIsExist := engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()]
-			if !extendIsExist {
-				engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()] = &TorrentLogExtend{
-					StatusPub:     singleTorrent.SubscribePieceStateChanges(),
-					HasStatusPub:  true,
-					HasMagnetChan: false,
-				}
-			} else if extendIsExist && !engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].HasStatusPub {
-				logger.Debug("it has extend but no status pub")
-				engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].HasStatusPub = true
-				engine.EngineRunningInfo.TorrentLogExtends[singleTorrent.InfoHash()].StatusPub = singleTorrent.SubscribePieceStateChanges()
-			}
-			logger.Debug("Create extend info for log")
+			engine.checkExtend(singleTorrent)
 			//Some download setting for task
-			//logger.Debug(clientConfig.DefaultTrackers)
 			singleTorrent.AddTrackers(clientConfig.DefaultTrackers)
 			singleTorrent.SetMaxEstablishedConns(clientConfig.EngineSetting.MaxEstablishedConns)
 			engine.WaitForCompleted(singleTorrent)
-			//TODO: Download selected files
 			singleTorrent.DownloadAll()
 		}
 	} else {
