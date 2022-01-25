@@ -175,6 +175,10 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
             break;
           }
         }
+        // sort by percentage desc
+        globalTorrents.sort((a, b) => {
+          return parseFloat(b.Percentage) - parseFloat(a.Percentage);
+        });
       } else if (data.MessageType === 1) {
         console.log('Should refresh');
         tmpThis.getTorrents();

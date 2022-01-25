@@ -15,7 +15,7 @@ type WebviewInfo struct {
 	HashToTorrentWebInfo map[metainfo.Hash]*TorrentWebInfo
 }
 
-type EngineInfo struct {
+type RunningInfo struct {
 	TorrentLogsAndID
 	MagnetNum         int
 	EngineCMD         chan MessageTypeID
@@ -121,7 +121,7 @@ const (
 	TorrentLogsID OnlyStormID = iota + 1
 )
 
-func (engineInfo *EngineInfo) init() {
+func (engineInfo *RunningInfo) init() {
 	engineInfo.MagnetNum = 0
 	engineInfo.HasRestarted = false
 	engineInfo.EngineCMD = make(chan MessageTypeID, 100)
@@ -130,7 +130,7 @@ func (engineInfo *EngineInfo) init() {
 	engineInfo.TorrentLogExtends = make(map[metainfo.Hash]*TorrentLogExtend)
 }
 
-func (engineInfo *EngineInfo) AddOneTorrent(singleTorrent *torrent.Torrent) (singleTorrentLog *TorrentLog) {
+func (engineInfo *RunningInfo) AddOneTorrent(singleTorrent *torrent.Torrent) (singleTorrentLog *TorrentLog) {
 	var isExist bool
 	singleTorrentLog, isExist = engineInfo.HashToTorrentLog[singleTorrent.InfoHash()]
 	if !isExist {
@@ -142,7 +142,7 @@ func (engineInfo *EngineInfo) AddOneTorrent(singleTorrent *torrent.Torrent) (sin
 }
 
 // AddOneTorrentFromMagnet For magnet
-func (engineInfo *EngineInfo) AddOneTorrentFromMagnet(infoHash metainfo.Hash) (singleTorrentLog *TorrentLog) {
+func (engineInfo *RunningInfo) AddOneTorrentFromMagnet(infoHash metainfo.Hash) (singleTorrentLog *TorrentLog) {
 	singleTorrentLog, isExist := engineInfo.HashToTorrentLog[infoHash]
 	if !isExist {
 		singleTorrentLog = createTorrentLogFromMagnet(infoHash)
@@ -168,7 +168,7 @@ func (engineInfo *EngineInfo) AddOneTorrentFromMagnet(infoHash metainfo.Hash) (s
 }
 
 // After get magnet info, update log information
-func (engineInfo *EngineInfo) UpdateMagnetInfo(singleTorrent *torrent.Torrent) {
+func (engineInfo *RunningInfo) UpdateMagnetInfo(singleTorrent *torrent.Torrent) {
 	singleTorrentLog, _ := engineInfo.HashToTorrentLog[singleTorrent.InfoHash()]
 	singleTorrentLog.TorrentName = singleTorrent.Name()
 	singleTorrentLog.MetaInfo = singleTorrent.Metainfo()
@@ -187,7 +187,7 @@ func (engine *Engine) UpdateInfo() {
 	engine.UpdateWebInfo()
 }
 
-func (engineInfo *EngineInfo) UpdateTorrentLog() {
+func (engineInfo *RunningInfo) UpdateTorrentLog() {
 	engineInfo.HashToTorrentLog = make(map[metainfo.Hash]*TorrentLog)
 
 	for index, singleTorrentLog := range engineInfo.TorrentLogs {
@@ -317,22 +317,22 @@ func (engine *Engine) GenerateInfoFromTorrent(singleTorrent *torrent.Torrent) (t
 
 func humanizeDuration(duration time.Duration) string {
 	if duration.Seconds() < 60.0 {
-		return fmt.Sprintf("%d seconds", int64(duration.Seconds()))
+		return fmt.Sprintf("%d s", int64(duration.Seconds()))
 	}
 	if duration.Minutes() < 60.0 {
 		remainingSeconds := math.Mod(duration.Seconds(), 60)
-		return fmt.Sprintf("%d minutes %d seconds", int64(duration.Minutes()), int64(remainingSeconds))
+		return fmt.Sprintf("%d m %d s", int64(duration.Minutes()), int64(remainingSeconds))
 	}
 	if duration.Hours() < 24.0 {
 		remainingMinutes := math.Mod(duration.Minutes(), 60)
 		remainingSeconds := math.Mod(duration.Seconds(), 60)
-		return fmt.Sprintf("%d hours %d minutes %d seconds",
+		return fmt.Sprintf("%d h %d m %d s",
 			int64(duration.Hours()), int64(remainingMinutes), int64(remainingSeconds))
 	}
 	remainingHours := math.Mod(duration.Hours(), 24)
 	remainingMinutes := math.Mod(duration.Minutes(), 60)
 	remainingSeconds := math.Mod(duration.Seconds(), 60)
-	return fmt.Sprintf("%d days %d hours %d minutes %d seconds",
+	return fmt.Sprintf("%d d %d h %d m %d s",
 		int64(duration.Hours()/24), int64(remainingHours),
 		int64(remainingMinutes), int64(remainingSeconds))
 }

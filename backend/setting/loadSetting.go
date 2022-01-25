@@ -289,6 +289,7 @@ func (cc *ClientSetting) getBlocklist(filepath string, blocklistURL string) ipli
 	gzipReader, err := gzip.NewReader(blocklistReader)
 	if err != nil {
 		cc.Logger.WithFields(log.Fields{"Error": err}).Error("Error extracting blocklist")
+		cc.downloadFile(blocklistURL, filepath)
 		return nil
 	}
 

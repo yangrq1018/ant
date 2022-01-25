@@ -39,7 +39,7 @@ func torrentProgress(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 					resInfo.MessageType = engine.RefreshInfo
 					err = conn.WriteJSON(resInfo)
 					if err != nil {
-						logger.Error("Unable to write Message", err)
+						logger.Error("Unable to write message", err)
 					}
 				}
 			}
@@ -47,7 +47,7 @@ func torrentProgress(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 		}
 		err = conn.ReadJSON(&tmp)
 		if err != nil {
-			logger.Error("Unable to read Message", err)
+			logger.Errorf("Unable to read ressage: %v", err)
 			break
 		}
 
@@ -55,8 +55,8 @@ func torrentProgress(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 			singleTorrent, isExist := runningEngine.GetOneTorrent(tmp.HexString)
 
 			if isExist {
-				singleTorrentLog, _ := runningEngine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
-				if singleTorrentLog.Status == engine.RunningStatus || singleTorrentLog.Status == engine.CompletedStatus {
+				singleTorrentLog, ok := runningEngine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
+				if ok && singleTorrentLog.Status == engine.RunningStatus || singleTorrentLog.Status == engine.CompletedStatus {
 					singleWebLog := runningEngine.GenerateInfoFromTorrent(singleTorrent)
 					resInfo.MessageType = engine.GetInfo
 					resInfo.HexString = singleWebLog.HexString

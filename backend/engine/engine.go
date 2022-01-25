@@ -13,7 +13,7 @@ type Engine struct {
 	TorrentEngine     *torrent.Client
 	TorrentDB         *TorrentDB
 	WebInfo           *WebviewInfo
-	EngineRunningInfo *EngineInfo
+	EngineRunningInfo *RunningInfo
 }
 
 var (
@@ -43,7 +43,7 @@ func (engine *Engine) initAndRunEngine() {
 	engine.WebInfo = &WebviewInfo{}
 	engine.WebInfo.HashToTorrentWebInfo = make(map[metainfo.Hash]*TorrentWebInfo)
 
-	engine.EngineRunningInfo = &EngineInfo{}
+	engine.EngineRunningInfo = &RunningInfo{}
 	engine.EngineRunningInfo.init()
 
 	// recover from storm database
@@ -52,7 +52,8 @@ func (engine *Engine) initAndRunEngine() {
 
 func (engine *Engine) setEnvironment() {
 	engine.TorrentDB.GetLogs(&engine.EngineRunningInfo.TorrentLogsAndID)
-	logger.Debug("Number of torrent(s) in db is ", len(engine.EngineRunningInfo.TorrentLogs))
+	engine.EngineRunningInfo.UpdateTorrentLog()
+	logger.Infof("Number of torrent(s) in db: %d", len(engine.EngineRunningInfo.TorrentLogs))
 	var wg sync.WaitGroup
 	for i, singleLog := range engine.EngineRunningInfo.TorrentLogs {
 		switch singleLog.Status {
@@ -61,6 +62,10 @@ func (engine *Engine) setEnvironment() {
 			// 把未完成的种子添加到下载队列中，初始状态为Stopped
 			wg.Add(1)
 			go func(i int, singleLog TorrentLog) {
+				logger.Infof("setEnvironment: adding torrent %v(%v) on %q to queue",
+					singleLog.TorrentName,
+					singleLog.MetaInfo.HashInfoBytes(),
+					singleLog.StoragePath)
 				defer wg.Done()
 				t, tmpErr := engine.TorrentEngine.AddTorrent(&singleLog.MetaInfo)
 				if tmpErr != nil {
@@ -70,19 +75,15 @@ func (engine *Engine) setEnvironment() {
 				t.AddTrackers(clientConfig.DefaultTrackers)
 				t.SetMaxEstablishedConns(clientConfig.EngineSetting.MaxEstablishedConns)
 				engine.checkExtend(t)
+				engine.EngineRunningInfo.TorrentLogs[i].Status = RunningStatus
 				engine.WaitForCompleted(t)
 				t.DownloadAll()
-				engine.EngineRunningInfo.TorrentLogs[i].Status = RunningStatus
-				logger.Infof("setEnvironment: added torrent %v %v %v to client",
-					singleLog.TorrentName,
-					singleLog.MetaInfo.HashInfoBytes(),
-					singleLog.StoragePath)
 			}(i, singleLog)
 		}
 	}
 	wg.Wait()
 	if len(engine.EngineRunningInfo.TorrentLogs) > 0 {
-		logger.Info("loaded all torrents from TorrentDB")
+		logger.Info("all torrents from TorrentDB loaded")
 	}
 	engine.UpdateInfo()
 }
