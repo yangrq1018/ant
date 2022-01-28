@@ -1,17 +1,17 @@
-import {Component, OnInit, OnDestroy } from '@angular/core';
+import {Component, OnDestroy, OnInit} from '@angular/core';
 import {TorrentService} from '../../providers/torrent.service';
 import * as _ from 'lodash';
 import {Torrent} from '../../classes/torrent';
 import {ActivatedRoute} from '@angular/router';
-import { ipcRenderer, remote, screen, Menu, shell } from 'electron';
+import {ipcRenderer, Menu, remote, screen, shell} from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { ConfigService } from '../../providers/config.service';
-import { MessagesService } from '../../providers/messages.service';
+import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
+import {ConfigService} from '../../providers/config.service';
+import {MessagesService} from '../../providers/messages.service';
 
-import { magnetDecode } from '@ctrl/magnet-link';
+import {magnetDecode} from '@ctrl/magnet-link';
 
 let globalTorrents: Torrent[];
 let ws: WebSocket;
@@ -33,12 +33,15 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
   webview: any;
   rightMenu: Menu;
   currentMagnet: string;
+
   constructor(private torrentService: TorrentService,
               private configService: ConfigService,
               private route: ActivatedRoute,
               private modalService: NgbModal,
               private messagesService: MessagesService,
-  ) { }
+  ) {
+  }
+
   ngOnInit() {
     const tmpThis = this;
     this.currentMagnet = undefined;
@@ -142,10 +145,10 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
 
     const tmpThis = this;
     const tmpWS = new WebSocket(this.configService.wsBaseUrl);
-    tmpWS.onopen = function(evt: any) {
+    tmpWS.onopen = function (evt: any) {
       tmpThis.messagesService.add('create websocket');
     };
-    tmpWS.onclose = function(evt: any) {
+    tmpWS.onclose = function (evt: any) {
       tmpThis.messagesService.add('close websocket');
       ws.close();
       setTimeout(() => {
@@ -153,11 +156,11 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
       }, 5000);
     };
 
-    tmpWS.onmessage = function(evt: any) {
+    tmpWS.onmessage = function (evt: any) {
       const data = JSON.parse(evt.data);
       // console.log(data);
       if (data.MessageType === 0) {
-        for (let i = 0; i < globalTorrents.length; i ++) {
+        for (let i = 0; i < globalTorrents.length; i++) {
           if (globalTorrents[i].HexString === data.HexString) {
             const currentProgress = globalTorrents[i].Percentage;
             if (parseFloat(currentProgress) < parseFloat(data.Percentage)) {
@@ -175,10 +178,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
             break;
           }
         }
-        // sort by percentage desc
-        globalTorrents.sort((a, b) => {
-          return parseFloat(b.Percentage) - parseFloat(a.Percentage);
-        });
+        globalTorrents.sort(tmpThis.compareTorrentsByCompletionRate);
       } else if (data.MessageType === 1) {
         console.log('Should refresh');
         tmpThis.getTorrents();
@@ -186,10 +186,15 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
         // location.reload();
       }
     };
-    tmpWS.onerror = function(evt: Event) {
+    tmpWS.onerror = function (evt: Event) {
       console.log('ERROR: ' + evt);
     };
     return tmpWS;
+  }
+
+  private compareTorrentsByCompletionRate(a: Torrent, b: Torrent) {
+    // sort by percentage desc
+    return parseFloat(b.Percentage) - parseFloat(a.Percentage);
   }
 
   private getTorrentWebFromData(torrent: Torrent): Torrent {
@@ -228,14 +233,13 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
           }
           this.torrents = datas;
           globalTorrents = this.torrents;
-          for (let i = 0; i < this.torrents.length; i ++) {
+          for (let i = 0; i < this.torrents.length; i++) {
             this.torrents[i] = this.getTorrentWebFromData(this.torrents[i]);
             if (this.torrents[i].Status === 'Running') {
-              // console.log(this.torrents[i].Status);
               this.updateInfo(this.torrents[i].HexString);
             }
           }
-          this.torrents.sort(this.compareTwoTorrent);
+          this.torrents.sort(this.compareTorrentsByCompletionRate);
         }, error => {
           console.log(error);
         });
@@ -289,7 +293,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
   }
 
   private updateInfo(hexString: string) {
-    for (let i = 0; i < this.torrents.length; i ++) {
+    for (let i = 0; i < this.torrents.length; i++) {
       if (this.torrents[i].HexString === hexString && this.torrents[i].Interval < 0) {
         this.torrents[i].Interval = window.setInterval(this.getInfo, this.torrentService.refreshTime, hexString);
       }
@@ -306,10 +310,10 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
 
 
   private getTrueFromSelect(torrent: Torrent) {
-    if ( torrent === null || torrent === undefined ) {
+    if (torrent === null || torrent === undefined) {
       return torrent;
     }
-    for (let i = 0; i < this.torrents.length; i ++) {
+    for (let i = 0; i < this.torrents.length; i++) {
       if (this.torrents[i].HexString === torrent.HexString) {
         return this.torrents[i];
       }
@@ -317,7 +321,7 @@ export class LocalDownloadComponent implements OnInit, OnDestroy {
   }
 
   handleMagnet(content: any) {
-    this.modalService.open(content, { centered: true });
+    this.modalService.open(content, {centered: true});
   }
 
   private getTorrentFromInfoHash(infohash: string) {

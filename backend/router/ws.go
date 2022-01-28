@@ -53,10 +53,9 @@ func torrentProgress(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 
 		if tmp.MessageType == engine.GetInfo {
 			singleTorrent, isExist := runningEngine.GetOneTorrent(tmp.HexString)
-
 			if isExist {
-				singleTorrentLog, ok := runningEngine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
-				if ok && singleTorrentLog.Status == engine.RunningStatus || singleTorrentLog.Status == engine.CompletedStatus {
+				singleTorrentLog := runningEngine.EngineRunningInfo.HashToTorrentLog[singleTorrent.InfoHash()]
+				if singleTorrentLog != nil && (singleTorrentLog.Status == engine.RunningStatus || singleTorrentLog.Status == engine.CompletedStatus) {
 					singleWebLog := runningEngine.GenerateInfoFromTorrent(singleTorrent)
 					resInfo.MessageType = engine.GetInfo
 					resInfo.HexString = singleWebLog.HexString

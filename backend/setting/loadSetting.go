@@ -275,6 +275,10 @@ func (cc *ClientSetting) getDefaultTrackers(filepath string, url string) [][]str
 
 // Download and add the blocklist.
 func (cc *ClientSetting) getBlocklist(filepath string, blocklistURL string) iplist.Ranger {
+	// Update list if possible for next time
+	defer func() {
+		go cc.downloadFile(blocklistURL, filepath)
+	}()
 
 	// Load blocklist.
 	// #nosec
@@ -289,7 +293,6 @@ func (cc *ClientSetting) getBlocklist(filepath string, blocklistURL string) ipli
 	gzipReader, err := gzip.NewReader(blocklistReader)
 	if err != nil {
 		cc.Logger.WithFields(log.Fields{"Error": err}).Error("Error extracting blocklist")
-		cc.downloadFile(blocklistURL, filepath)
 		return nil
 	}
 
@@ -306,9 +309,6 @@ func (cc *ClientSetting) getBlocklist(filepath string, blocklistURL string) ipli
 		Last:        net.ParseIP("0.0.0.0"),
 		Description: "wildcard",
 	})
-
-	// Update list if possible for next time
-	go cc.downloadFile(blocklistURL, filepath)
 	return blocklist
 }
 

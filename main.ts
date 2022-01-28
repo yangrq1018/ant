@@ -10,7 +10,7 @@ import { execFile, ChildProcess } from 'child_process';
 let win: BrowserWindow, serve, clientOnly;
 const args = process.argv.slice(1);
 serve = args.some(val => val === '--serve');
-clientOnly = args.some(val => val === '--client')
+clientOnly = args.some(val => val === '--client');
 
 const aimVersion = app.getVersion();
 const gotTheLock = app.requestSingleInstanceLock();
@@ -162,7 +162,6 @@ function createTray() {
 }
 
 function createWindow() {
-
     const electronScreen = screen;
     const size = electronScreen.getPrimaryDisplay().workAreaSize;
 
@@ -171,8 +170,6 @@ function createWindow() {
     win = new BrowserWindow({
         width: size.width * 0.8,
         height: size.height * 0.75,
-        minWidth: size.width * 0.65,
-        minHeight: size.height * 0.7,
         title: 'ANT Downloader',
         icon: path.join(app.getAppPath(), 'logo.png'),
         autoHideMenuBar: true,
@@ -181,7 +178,8 @@ function createWindow() {
             nodeIntegration: true,
             contextIsolation: false,
             enableRemoteModule: true,
-        }
+        },
+        minimizable: true // for windows minimize button
     });
 
     if (serve && !clientOnly) {

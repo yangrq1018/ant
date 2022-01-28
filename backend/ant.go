@@ -21,7 +21,9 @@ var (
 
 func runAPP() {
 	logger.SetFormatter(&log.TextFormatter{
-		ForceColors: true,
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006-01-92T15:04:05",
 	})
 	go func() {
 		// Init server router

@@ -160,8 +160,6 @@ function createWindow() {
     win = new electron_1.BrowserWindow({
         width: size.width * 0.8,
         height: size.height * 0.75,
-        minWidth: size.width * 0.65,
-        minHeight: size.height * 0.7,
         title: 'ANT Downloader',
         icon: path.join(electron_1.app.getAppPath(), 'logo.png'),
         autoHideMenuBar: true,
@@ -170,7 +168,8 @@ function createWindow() {
             nodeIntegration: true,
             contextIsolation: false,
             enableRemoteModule: true,
-        }
+        },
+        minimizable: true // for windows minimize button
     });
     if (serve && !clientOnly) {
         require('electron-reload')(__dirname, {
