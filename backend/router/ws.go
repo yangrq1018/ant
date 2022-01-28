@@ -29,22 +29,27 @@ func torrentProgress(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 	}()
 	var tmp engine.MessageFromWeb
 	var resInfo engine.TorrentProgressInfo
-	for {
 
-		select {
-		case cmdID := <-runningEngine.EngineRunningInfo.EngineCMD:
-			{
-				logger.Debug("Send CMD Now: ", cmdID)
-				if cmdID == engine.RefreshInfo {
-					resInfo.MessageType = engine.RefreshInfo
-					err = conn.WriteJSON(resInfo)
-					if err != nil {
-						logger.Error("Unable to write message", err)
+	go func() {
+		for {
+			cmdID := <-runningEngine.EngineRunningInfo.EngineCMD
+			logger.Debug("Send CMD Now: ", cmdID)
+			if cmdID == engine.RefreshInfo {
+				resInfo.MessageType = engine.RefreshInfo
+				err = conn.WriteJSON(resInfo)
+				if err != nil {
+					select {
+					case runningEngine.EngineRunningInfo.EngineCMD <- cmdID:
+					default:
 					}
+					logger.Error("Unable to write message", err)
+					return
 				}
 			}
-		default:
 		}
+	}()
+
+	for {
 		err = conn.ReadJSON(&tmp)
 		if err != nil {
 			logger.Errorf("Unable to read ressage: %v", err)
@@ -66,9 +71,7 @@ func torrentProgress(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 				}
 			}
 		}
-
 	}
-
 }
 
 func handleWS(router *httprouter.Router) {
