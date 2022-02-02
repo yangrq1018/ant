@@ -78,14 +78,17 @@ func (engine *Engine) setEnvironment() {
 				engine.EngineRunningInfo.TorrentLogs[i].Status = RunningStatus
 				engine.WaitForCompleted(t)
 				t.DownloadAll()
+				logger.Infof("added %s to engine", singleLog.TorrentName)
 			}(i, singleLog)
 		}
 	}
-	wg.Wait()
-	if len(engine.EngineRunningInfo.TorrentLogs) > 0 {
-		logger.Info("all torrents from TorrentDB loaded")
-	}
-	engine.UpdateInfo()
+	go func() {
+		wg.Wait()
+		if len(engine.EngineRunningInfo.TorrentLogs) > 0 {
+			logger.Info("all torrents from TorrentDB loaded")
+		}
+		engine.UpdateInfo()
+	}()
 }
 
 func (engine *Engine) Restart() {
